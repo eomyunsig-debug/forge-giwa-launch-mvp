@@ -59,6 +59,9 @@ export async function buildLaunchRequest(
   options: { now?: number; deadlineSeconds?: number } = {},
 ): Promise<TransactionRequest> {
   const parsed = createLaunchInputSchema.parse(input);
+  if (deployment.adapterKind === "giwa-disabled") {
+    throw new Error("GIWA_AMM_INTEGRATION_DISABLED");
+  }
   const [creationFee, minimumLiquidity, adapterEnabled, configured] =
     await Promise.all([
       client.readContract({
@@ -133,6 +136,9 @@ export async function fetchTradeQuote(
     nowMs?: number;
   },
 ): Promise<TradeQuote> {
+  if (deployment.adapterKind === "giwa-disabled") {
+    throw new Error("GIWA_AMM_INTEGRATION_DISABLED");
+  }
   if (amountIn <= 0n) throw new Error("INVALID_TRADE_AMOUNT");
   if (
     !Number.isInteger(options.slippageBps) ||
@@ -156,7 +162,8 @@ export async function fetchTradeQuote(
       args: [token],
     }),
   ]);
-  if (!state.initialized || amountOut <= 0n) throw new Error("QUOTE_UNAVAILABLE");
+  if (!state.initialized || amountOut <= 0n)
+    throw new Error("QUOTE_UNAVAILABLE");
 
   const slippage = BigInt(options.slippageBps);
   const minAmountOut = (amountOut * (BPS - slippage)) / BPS;
@@ -181,8 +188,7 @@ export async function fetchTradeQuote(
     minAmountOut,
     priceImpactBps: impact,
     slippageBps: options.slippageBps,
-    deadline:
-      Math.floor(nowMs / 1_000) + (options.deadlineSeconds ?? 10 * 60),
+    deadline: Math.floor(nowMs / 1_000) + (options.deadlineSeconds ?? 10 * 60),
     createdAt: nowMs,
     expiresAt: nowMs + (options.ttlMs ?? 30_000),
     pool: state.pool,

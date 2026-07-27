@@ -73,7 +73,7 @@ describe("launch transaction builder", () => {
       abi: launchFactoryAbi,
       data: request.data,
     });
-    const launch = decoded.args?.[0] as {
+    const launch = decoded.args[0] as {
       metadataHash: `0x${string}`;
       deadline: bigint;
       creatorAllocationBps: number;
@@ -108,6 +108,30 @@ describe("launch transaction builder", () => {
         nativeLiquidityWei: "1",
       }),
     ).rejects.toThrow("AMM_ADAPTER_DISABLED");
+  });
+
+  it("never builds a launch for an explicitly disabled GIWA adapter", async () => {
+    const client = mockClient(() => {
+      throw new Error("disabled deployments must not perform RPC reads");
+    });
+
+    await expect(
+      buildLaunchRequest(
+        client,
+        { ...deployment, adapterKind: "giwa-disabled" },
+        account,
+        {
+          name: "Forge",
+          symbol: "FRG",
+          description: "test",
+          imageUrl: "http://localhost/image.png",
+          metadataUri: "http://localhost/metadata.json",
+          metadataHash,
+          creatorAllocationBps: 0,
+          nativeLiquidityWei: "1",
+        },
+      ),
+    ).rejects.toThrow("GIWA_AMM_INTEGRATION_DISABLED");
   });
 });
 
@@ -158,9 +182,38 @@ describe("trade quote builder", () => {
       throw new Error(`unexpected read: ${functionName}`);
     });
 
+    await expect(
+      fetchTradeQuote(
+        client,
+        { ...deployment, adapterKind: "giwa-disabled" },
+        account,
+        token,
+        "buy",
+        100n,
+        { slippageBps: 100, nowMs: 1_000_000 },
+      ),
+    ).rejects.toThrow("GIWA_AMM_INTEGRATION_DISABLED");
+    expect(client.readContract).not.toHaveBeenCalled();
+  });
+
+  it("keeps an approved GIWA fee undisclosed until the adapter exposes it", async () => {
+    const client = mockClient((functionName) => {
+      if (functionName === "quoteExactInput") return 900n;
+      if (functionName === "getPoolState") {
+        return {
+          pool,
+          tokenReserve: 10_000n,
+          nativeReserve: 1_000n,
+          totalLiquidity: 1_000n,
+          initialized: true,
+        };
+      }
+      throw new Error(`unexpected read: ${functionName}`);
+    });
+
     const quote = await fetchTradeQuote(
       client,
-      { ...deployment, adapterKind: "giwa-disabled" },
+      { ...deployment, adapterKind: "giwa-reviewed" },
       account,
       token,
       "buy",

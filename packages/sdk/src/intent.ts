@@ -20,7 +20,9 @@ export const transactionIntentSchema = z.object({
 export type TransactionIntent = z.infer<typeof transactionIntentSchema>;
 
 export class StaleIntentError extends Error {
-  constructor(public readonly reason: "expired" | "account" | "chain" | "input") {
+  constructor(
+    public readonly reason: "expired" | "account" | "chain" | "input",
+  ) {
     super(`STALE_TRANSACTION_INTENT:${reason}`);
     this.name = "StaleIntentError";
   }
@@ -45,4 +47,3 @@ export function assertIntentFresh(
     throw new StaleIntentError("input");
   }
 }
-
