@@ -30,6 +30,9 @@ The values in `.env.example` were checked against GIWA's current
 The official public RPC is rate-limited. Forge does not treat Flashblocks
 preconfirmation as a transaction receipt or finalized state. The indexer uses
 the standard HTTP RPC and requests the `safe` block tag for GIWA.
+`DeployGiwa` also reverts unless the active chain ID is exactly `91342`, while
+the shared chain configuration rejects any non-official network identity.
+Changing an RPC or environment value cannot enable mainnet.
 
 ## Live read-only results
 

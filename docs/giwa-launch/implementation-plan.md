@@ -1,6 +1,7 @@
 # Forge GIWA Launch MVP — Implementation Plan
 
-> Status: active implementation
+> Status: local MVP implemented and verified; GIWA state-changing smoke blocked
+> fail-closed by the AMM and funded-wallet prerequisites below.
 >
 > Scope: GIWA testnet and local Anvil only. Mainnet deployment and real-value
 > trading are explicitly out of scope.
@@ -39,8 +40,9 @@ operational overhead.
 
 ## Smart-contract composition
 
-- `LaunchToken`: fixed 1,000,000,000 token supply, 18 decimals, no owner, mint,
-  pause, blacklist, transfer restrictions, or tax. Optional holder-only burn.
+- `LaunchToken`: fixed 1,000,000,000 token supply, 18 decimals, no owner,
+  post-construction mint, burn, pause, blacklist, transfer restrictions, or
+  tax.
 - `LaunchFactory`: validates launch input, deploys the token, vesting vault and
   permanent locker, routes the exact native liquidity and creation fee, calls
   one approved AMM adapter, and emits the canonical launch record atomically.
@@ -76,6 +78,18 @@ status rather than replacing data with zeroes.
 Holder balances are derived from `Transfer` events as decimal strings. Pool,
 locker, vesting vault, zero, and burn addresses are classified separately.
 Top-holder concentration uses only circulating balances of ordinary wallets.
+Standard V2 `Swap`/`Sync` and local-fixture events have separate decoders.
+The configured chain selects exactly one decoder (`91342` → V2, `31337` →
+local); unsupported or contradictory combinations fail at startup. Because an
+AMM's initial `Sync` can precede the factory's `LaunchCreated` in one
+transaction, replay first seeds launch-owned entities and then applies all
+dependent events in canonical order.
+Distinct-buyer metrics use the canonical transaction sender rather than a
+caller-selected token recipient. A hash-committed metadata fetch that fails
+transiently is scheduled in a persistent SQL retry queue with bounded backoff.
+Only currently eligible rows are limited, so permanently bad early URIs cannot
+starve later launches. Once verified, metadata is persisted into the raw event
+so restarts and later projection rebuilds retain it.
 
 ## GIWA testnet integration strategy
 
@@ -102,6 +116,11 @@ Unconfirmed AMM values are not invented. Missing values keep the GIWA AMM
 adapter disabled with an actionable configuration error. Local Anvil remains
 fully functional for vertical-flow validation.
 
+Both deployment scripts also enforce their exact chain IDs on-chain:
+`DeployLocal` accepts only `31337`, and `DeployGiwa` accepts only `91342`.
+Changing an environment variable cannot turn either path into a mainnet
+deployment.
+
 ## AMM choice
 
 The local MVP uses a purpose-built constant-product fixture because it makes
@@ -116,10 +135,14 @@ router/pool calls could bypass those policies.
 
 ## Known risks and blockers
 
-- GIWA testnet network and DEX values are pending current primary-source
-  verification.
-- A public GIWA faucet, funded test wallet, and official DEX liquidity may be
-  external blockers for live smoke tests.
+- GIWA network settings and read-only RPC/finality behavior are verified from
+  current official sources, but no approved AMM currently satisfies Forge's
+  new-token pool plus permanently locked ERC-20 LP boundary.
+- No user-controlled funded GIWA Sepolia wallet was supplied. Forge does not
+  import deployment keys, so no state-changing testnet deployment was
+  attempted.
+- The public faucet is protected by an interactive browser challenge; its
+  automated request returned `403`.
 - Reorg recovery targets the bounded MVP confirmation window, not archival-node
   replacement.
 - Social ownership proofs can verify wallet-to-account control evidence only;
@@ -130,21 +153,35 @@ router/pool calls could bypass those policies.
 
 ## Ordered TODO
 
-- [ ] 1. Scaffold workspace, central brand/config, local developer flow.
-- [ ] 2. Add fail-closed chain configuration and local Anvil orchestration.
-- [ ] 3. Implement core contracts and local/GIWA AMM adapters.
-- [ ] 4. Add Foundry unit, fuzz, invariant, and atomic-integration tests.
-- [ ] 5. Generate/export ABIs and implement typed SDK transaction boundaries.
-- [ ] 6. Implement durable indexer, data model, API, reorg/idempotency tests.
-- [ ] 7. Implement EIP-6963 wallet connection and chain/account TOCTOU guards.
-- [ ] 8. Implement metadata upload and atomic create-launch flow.
-- [ ] 9. Implement feed, token detail, quote, buy/sell, receipt reconciliation.
-- [ ] 10. Implement risk facts, creator profile, portfolio, and risk education.
-- [ ] 11. Automate local Anvil vertical Playwright flow and screenshots.
-- [ ] 12. Add GIWA adapter configuration and run the available smoke checks.
-- [ ] 13. Harden security headers/rate limits/CSP, add CI and deployment
+- [x] 1. Scaffold workspace, central brand/config, local developer flow.
+- [x] 2. Add fail-closed chain configuration and local Anvil orchestration.
+- [x] 3. Implement core contracts and local/GIWA AMM adapters.
+- [x] 4. Add Foundry unit, fuzz, invariant, and atomic-integration tests.
+- [x] 5. Generate/export ABIs and implement typed SDK transaction boundaries.
+- [x] 6. Implement durable indexer, data model, API, reorg/idempotency tests.
+- [x] 7. Implement EIP-6963 wallet connection and chain/account TOCTOU guards.
+- [x] 8. Implement metadata upload and atomic create-launch flow.
+- [x] 9. Implement feed, token detail, quote, buy/sell, receipt reconciliation.
+- [x] 10. Implement risk facts, creator profile, portfolio, and risk education.
+- [x] 11. Automate local Anvil vertical Playwright flow and screenshots.
+- [x] 12. Add GIWA adapter configuration and run the available read-only smoke
+      checks; document state-changing blockers without fabricating results.
+- [x] 13. Harden security headers/rate limits/CSP, add CI and deployment
       artifacts.
-- [ ] 14. Run final browser/accessibility QA and document residual risk.
+- [x] 14. Run final browser/accessibility QA and document residual risk.
 
 The TODO list is updated only when the corresponding implementation and tests
 have actually run.
+
+Final QA used the running local stack in the in-app browser at 375×812 and
+1440×900. It confirmed no horizontal overflow, one main landmark and one H1,
+image alt coverage, visible local-test disclaimers, and no browser console
+errors. The review also caught and fixed Korean heading orphan characters,
+sub-44px mobile controls, raw wei risk values, and the token-image failure
+fallback before the final Playwright run.
+
+An independent final audit then caught and closed accidental-chain deployment,
+GIWA finality/event-decoder mismatch, recipient-spoofable buyer counts,
+transient metadata loss and retry-queue starvation, initial AMM event ordering,
+zero-claim portfolio actions, and missing sell-gas checks. The complete
+Playwright vertical flow was rerun after those changes.

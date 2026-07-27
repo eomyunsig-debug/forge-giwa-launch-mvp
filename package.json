@@ -30,14 +30,16 @@
     "contracts:snapshot:check": "scripts/foundry.sh snapshot --check",
     "abi:generate": "tsx scripts/export-abis.ts",
     "test:e2e": "playwright test",
+    "verify:manifests": "tsx scripts/validate-deployments.ts",
     "verify:secrets": "tsx scripts/secret-scan.ts",
-    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:contracts && pnpm contracts:build && pnpm contracts:build:all && pnpm abi:generate && pnpm build && pnpm verify:secrets"
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:contracts && pnpm contracts:build && pnpm contracts:build:all && pnpm abi:generate && pnpm verify:manifests && pnpm build && pnpm verify:secrets"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.54.1",
     "@types/node": "^24.1.0",
     "@vitest/coverage-v8": "^4.1.10",
+    "ajv": "8.20.0",
     "concurrently": "^9.2.0",
     "eslint": "^10.8.0",
     "globals": "^16.3.0",

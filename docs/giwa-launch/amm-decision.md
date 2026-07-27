@@ -63,4 +63,6 @@ A GIWA adapter can be enabled only after all of the following are true:
    manifest.
 
 Until then the local fixture provides deterministic vertical verification, and
-GIWA actions fail closed.
+GIWA actions fail closed. The indexer already has a separately tested standard
+V2 `Swap`/`Sync` decoder, but its presence is not evidence that any particular
+GIWA deployment is approved or compatible.
