@@ -1,0 +1,12 @@
+node_modules
+dist
+coverage
+packages/contracts/lib
+packages/contracts/out
+packages/contracts/cache
+packages/contracts/broadcast
+artifacts
+data
+playwright-report
+test-results
+pnpm-lock.yaml

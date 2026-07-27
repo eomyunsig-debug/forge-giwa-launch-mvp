@@ -1,0 +1,47 @@
+{
+  "name": "forge-giwa-launch-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "build": "pnpm -r --if-present build",
+    "dev": "concurrently -n indexer,web -c cyan,magenta \"pnpm --filter @forge/indexer dev\" \"pnpm --filter @forge/web dev\"",
+    "dev:local": "tsx scripts/local-stack.ts",
+    "format": "prettier --write . && pnpm contracts:fmt",
+    "format:check": "prettier --check . && pnpm contracts:fmt:check",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "vitest run",
+    "test:web": "pnpm --filter @forge/web test",
+    "test:indexer": "pnpm --filter @forge/indexer test",
+    "test:contracts": "scripts/foundry.sh test -vvv",
+    "test:contracts:fuzz": "scripts/foundry.sh test --match-path 'test/fuzz/**' -vv",
+    "test:contracts:invariant": "scripts/foundry.sh test --match-path 'test/invariant/**' -vv",
+    "contracts:build": "scripts/foundry.sh build --sizes",
+    "contracts:fmt": "scripts/foundry.sh fmt",
+    "contracts:fmt:check": "scripts/foundry.sh fmt --check",
+    "contracts:snapshot": "scripts/foundry.sh snapshot",
+    "abi:generate": "tsx scripts/export-abis.ts",
+    "test:e2e": "playwright test",
+    "verify:secrets": "tsx scripts/secret-scan.ts",
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:contracts && pnpm contracts:build && pnpm abi:generate && pnpm build && pnpm verify:secrets"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@playwright/test": "^1.54.1",
+    "@types/node": "^24.1.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "concurrently": "^9.2.0",
+    "eslint": "^9.32.0",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.38.0",
+    "vitest": "^3.2.4"
+  }
+}
