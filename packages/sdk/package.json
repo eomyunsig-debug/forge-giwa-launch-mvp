@@ -1,5 +1,5 @@
 {
-  "name": "@forge/shared",
+  "name": "@forge/sdk",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -16,6 +16,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@forge/chain-config": "workspace:*",
+    "@forge/shared": "workspace:*",
+    "viem": "^2.33.2",
     "zod": "^4.0.10"
   }
 }

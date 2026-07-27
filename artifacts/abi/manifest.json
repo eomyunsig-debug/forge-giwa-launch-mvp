@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "generator": "scripts/export-abis.ts",
+  "contracts": [
+    "LaunchToken.json",
+    "LaunchFactory.json",
+    "CreatorVestingVault.json",
+    "PermanentLiquidityLocker.json",
+    "ProtocolConfig.json",
+    "IAMMAdapter.json",
+    "LocalConstantProductAdapter.json",
+    "GiwaV2Adapter.json"
+  ]
+}

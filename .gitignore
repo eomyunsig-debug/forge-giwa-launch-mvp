@@ -9,7 +9,11 @@ coverage/
 .DS_Store
 .tools/
 data/
-artifacts/
+artifacts/*
+!artifacts/abi/
+!artifacts/abi/*.json
+!artifacts/screenshots/
+!artifacts/screenshots/*.png
 packages/contracts/cache/
 packages/contracts/out/
 packages/contracts/broadcast/

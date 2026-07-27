@@ -8,6 +8,10 @@ export const chainIdSchema = z.number().int().positive();
 export const bigintStringSchema = z.string().regex(/^(0|[1-9]\d*)$/);
 export const signedBigintStringSchema = z.string().regex(/^-?(0|[1-9]\d*)$/);
 export const hashSchema = z.string().regex(/^0x[a-fA-F0-9]{64}$/);
+export const nonZeroHashSchema = hashSchema.refine(
+  (value) => value.toLowerCase() !== `0x${"0".repeat(64)}`,
+  "빈 콘텐츠 해시는 사용할 수 없습니다.",
+);
 export const nullableMetricSchema = z.union([bigintStringSchema, z.null()]);
 
 export const dataMetaSchema = z.object({
@@ -135,6 +139,7 @@ export const createLaunchInputSchema = z.object({
   description: z.string().trim().min(1).max(500),
   imageUrl: z.string().url(),
   metadataUri: z.string().url().max(256),
+  metadataHash: nonZeroHashSchema,
   socialUrl: z
     .string()
     .url()
