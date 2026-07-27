@@ -2,34 +2,39 @@ import { defineChain, type Chain } from "viem";
 import { z } from "zod";
 
 const httpUrl = z
-  .string()
   .url()
-  .refine((value) => /^https?:\/\//.test(value));
-const secureUrl = z
-  .string()
-  .url()
-  .refine((value) => value.startsWith("https://"));
+  .refine(
+    (value) => value.startsWith("https://") || value.startsWith("http://"),
+  );
+const secureUrl = z.url().refine((value) => value.startsWith("https://"));
 const address = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
+const optionalPlaceholder = <Schema extends z.ZodType>(schema: Schema) =>
+  z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    schema.optional(),
+  );
 
 const remoteConfigSchema = z.object({
   GIWA_TESTNET_ENABLED: z.literal("true"),
   GIWA_TESTNET_CHAIN_ID: z.coerce.number().int().positive(),
   GIWA_TESTNET_RPC_URL: httpUrl,
-  GIWA_TESTNET_WS_URL: z
-    .string()
-    .url()
-    .refine((value) => /^wss?:\/\//.test(value))
-    .optional(),
+  GIWA_TESTNET_WS_URL: optionalPlaceholder(
+    z
+      .url()
+      .refine(
+        (value) => value.startsWith("wss://") || value.startsWith("ws://"),
+      ),
+  ),
   GIWA_TESTNET_EXPLORER_URL: secureUrl,
   GIWA_TESTNET_NATIVE_NAME: z.string().min(1).max(40),
   GIWA_TESTNET_NATIVE_SYMBOL: z.string().min(1).max(12),
   GIWA_TESTNET_NATIVE_DECIMALS: z.coerce.number().int().min(0).max(36),
   GIWA_TESTNET_FINALITY_TAG: z.enum(["safe", "finalized"]),
-  GIWA_TESTNET_BRIDGE_URL: secureUrl.optional(),
-  GIWA_TESTNET_FAUCET_URL: secureUrl.optional(),
-  GIWA_TESTNET_AMM_FACTORY: address.optional(),
-  GIWA_TESTNET_AMM_ROUTER: address.optional(),
-  GIWA_TESTNET_WRAPPED_NATIVE: address.optional(),
+  GIWA_TESTNET_BRIDGE_URL: optionalPlaceholder(secureUrl),
+  GIWA_TESTNET_FAUCET_URL: optionalPlaceholder(secureUrl),
+  GIWA_TESTNET_AMM_FACTORY: optionalPlaceholder(address),
+  GIWA_TESTNET_AMM_ROUTER: optionalPlaceholder(address),
+  GIWA_TESTNET_WRAPPED_NATIVE: optionalPlaceholder(address),
 });
 
 export interface ForgeChainConfig {
@@ -48,6 +53,21 @@ export interface ForgeChainConfig {
   };
   environment: "local" | "giwa-testnet";
 }
+
+export const giwaSepoliaOfficialReference = {
+  checkedAt: "2026-07-28",
+  chainId: 91_342,
+  rpcUrl: "https://sepolia-rpc.giwa.io",
+  flashblocksRpcUrl: "https://sepolia-rpc-flashblocks.giwa.io",
+  explorerUrl: "https://sepolia-explorer.giwa.io",
+  bridgeUrl: "https://sepolia-bridge.giwa.io/",
+  faucetUrl: "https://faucet.giwa.io/",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+} as const;
 
 export const localAnvilConfig: ForgeChainConfig = {
   chain: defineChain({

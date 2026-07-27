@@ -594,6 +594,11 @@
   },
   {
     "type": "error",
+    "name": "ReentrantCall",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "SafeERC20CallFailed",
     "inputs": [
       {

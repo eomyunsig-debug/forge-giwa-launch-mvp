@@ -3,6 +3,7 @@ pragma solidity ^0.8.26;
 
 import { IAMMAdapter } from "../interfaces/IAMMAdapter.sol";
 import { IERC20 } from "../interfaces/IERC20.sol";
+import { ReentrancyGuard } from "../lib/ReentrancyGuard.sol";
 import { SafeERC20 } from "../lib/SafeERC20.sol";
 
 interface IV2Factory {
@@ -55,7 +56,7 @@ interface IV2Pair is IERC20 {
 /// @notice V2-compatible adapter for a separately verified GIWA testnet DEX.
 /// @dev No address is embedded or inferred. Deployment reverts unless every
 ///      dependency is non-zero, code-bearing, and running on expectedChainId.
-contract GiwaV2Adapter is IAMMAdapter {
+contract GiwaV2Adapter is IAMMAdapter, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     error ZeroAddress();
@@ -142,7 +143,7 @@ contract GiwaV2Adapter is IAMMAdapter {
         uint256 minLiquidity,
         uint256 deadline,
         address lpRecipient
-    ) external payable returns (LiquidityPosition memory position) {
+    ) external payable nonReentrant returns (LiquidityPosition memory position) {
         _checkChainAndToken(token);
         _checkDeadline(deadline);
         if (lpRecipient == address(0)) revert ZeroAddress();
@@ -213,6 +214,7 @@ contract GiwaV2Adapter is IAMMAdapter {
     function buy(address token, uint256 minTokenOut, uint256 deadline, address recipient)
         external
         payable
+        nonReentrant
         returns (uint256 tokenOut)
     {
         _checkChainAndToken(token);
@@ -233,7 +235,7 @@ contract GiwaV2Adapter is IAMMAdapter {
         uint256 minNativeOut,
         uint256 deadline,
         address recipient
-    ) external returns (uint256 nativeOut) {
+    ) external nonReentrant returns (uint256 nativeOut) {
         _checkChainAndToken(token);
         _checkDeadline(deadline);
         if (recipient == address(0)) revert ZeroAddress();

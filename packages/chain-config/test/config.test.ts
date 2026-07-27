@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { loadGiwaTestnetConfig } from "../src/index.js";
+import {
+  giwaSepoliaOfficialReference,
+  loadGiwaTestnetConfig,
+} from "../src/index.js";
 
 const valid = {
   GIWA_TESTNET_ENABLED: "true",
@@ -14,6 +17,16 @@ const valid = {
 };
 
 describe("GIWA chain config", () => {
+  it("keeps the primary-source checked Sepolia reference centralized", () => {
+    expect(giwaSepoliaOfficialReference).toMatchObject({
+      checkedAt: "2026-07-28",
+      chainId: 91_342,
+      rpcUrl: "https://sepolia-rpc.giwa.io",
+      explorerUrl: "https://sepolia-explorer.giwa.io",
+      nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+    });
+  });
+
   it("fails closed when official values are missing", () => {
     expect(() => loadGiwaTestnetConfig({})).toThrow(
       "GIWA_TESTNET_CONFIG_INVALID",
@@ -31,5 +44,17 @@ describe("GIWA chain config", () => {
 
   it("loads a complete explicitly enabled testnet", () => {
     expect(loadGiwaTestnetConfig(valid).chain.id).toBe(123);
+  });
+
+  it("treats explicit empty optional placeholders as unset", () => {
+    const config = loadGiwaTestnetConfig({
+      ...valid,
+      GIWA_TESTNET_WS_URL: "",
+      GIWA_TESTNET_AMM_FACTORY: "",
+      GIWA_TESTNET_AMM_ROUTER: "",
+      GIWA_TESTNET_WRAPPED_NATIVE: "",
+    });
+    expect(config.webSocketUrl).toBeUndefined();
+    expect(config.amm).toBeUndefined();
   });
 });
