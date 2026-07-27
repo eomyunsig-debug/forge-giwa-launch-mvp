@@ -19,7 +19,7 @@ export const dataMetaSchema = z.object({
   source: z.enum(["onchain-indexer", "local-fixture"]),
   indexedBlock: bigintStringSchema.nullable(),
   indexedBlockHash: hashSchema.nullable(),
-  updatedAt: z.string().datetime().nullable(),
+  updatedAt: z.iso.datetime().nullable(),
   status: z.enum(["synced", "lagging", "starting", "error"]),
   error: z.string().nullable(),
 });
@@ -54,7 +54,8 @@ export const launchSummarySchema = z.object({
   name: z.string().min(1),
   symbol: z.string().min(1),
   metadataUri: z.string(),
-  imageUrl: z.string().url().nullable(),
+  metadataHash: hashSchema,
+  imageUrl: z.url().nullable(),
   description: z.string().nullable(),
   creatorAddress: addressSchema,
   creatorAllocationBps: z.number().int().min(0).max(10_000),
@@ -68,7 +69,7 @@ export const launchSummarySchema = z.object({
   recentVolumeNative: bigintStringSchema.nullable(),
   recentTrades: z.number().int().nonnegative().nullable(),
   topTenOrdinaryHolderBps: z.number().int().min(0).max(10_000).nullable(),
-  createdAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
   createdBlock: bigintStringSchema,
   transactionHash: hashSchema,
   socialOwnershipVerified: z.boolean(),
@@ -92,7 +93,7 @@ export const tradeSchema = z.object({
   nativeAmount: bigintStringSchema,
   tokenAmount: bigintStringSchema,
   blockNumber: bigintStringSchema,
-  blockTimestamp: z.string().datetime(),
+  blockTimestamp: z.iso.datetime(),
 });
 
 export const vestingScheduleSchema = z.object({
@@ -103,8 +104,8 @@ export const vestingScheduleSchema = z.object({
   claimed: bigintStringSchema,
   claimable: bigintStringSchema,
   locked: bigintStringSchema,
-  cliffAt: z.string().datetime(),
-  fullyVestedAt: z.string().datetime(),
+  cliffAt: z.iso.datetime(),
+  fullyVestedAt: z.iso.datetime(),
 });
 
 export const launchDetailSchema = launchSummarySchema.extend({
@@ -137,13 +138,12 @@ export const createLaunchInputSchema = z.object({
     .max(10)
     .regex(/^[A-Z][A-Z0-9]*$/),
   description: z.string().trim().min(1).max(500),
-  imageUrl: z.string().url(),
-  metadataUri: z.string().url().max(256),
+  imageUrl: z.url(),
+  metadataUri: z.url().max(256),
   metadataHash: nonZeroHashSchema,
   socialUrl: z
-    .string()
     .url()
-    .refine((value) => /^https:\/\//.test(value))
+    .refine((value) => value.startsWith("https://"))
     .optional(),
   creatorAllocationBps: z.number().int().min(0).max(1_000),
   nativeLiquidityWei: bigintStringSchema.refine((value) => BigInt(value) > 0n),
