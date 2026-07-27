@@ -1,0 +1,12 @@
+{
+  "name": "@forge/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "../../scripts/foundry.sh build",
+    "test": "../../scripts/foundry.sh test -vv"
+  },
+  "files": [
+    "out"
+  ]
+}

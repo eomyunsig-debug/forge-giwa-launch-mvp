@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "network": "giwa-testnet",
+  "chainId": null,
+  "deployed": false,
+  "contracts": {
+    "protocolConfig": null,
+    "launchFactory": null,
+    "ammAdapter": null
+  },
+  "ammIntegration": {
+    "kind": "unsupported",
+    "integrationApproved": false
+  },
+  "blocker": "No approved, audited V2-compatible GIWA testnet AMM deployment has been verified. The disabled adapter fails closed with UnsupportedIntegration; no addresses are invented."
+}

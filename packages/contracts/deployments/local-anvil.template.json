@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "network": "local-anvil",
+  "chainId": 31337,
+  "deployed": false,
+  "contracts": {
+    "protocolConfig": null,
+    "launchFactory": null,
+    "localConstantProductAdapter": null
+  },
+  "ammIntegration": {
+    "kind": "local-test-fixture",
+    "integrationApproved": true,
+    "testOnly": true
+  },
+  "note": "Deployment tooling replaces null addresses with the current ephemeral Anvil deployment. These template values are not contract addresses."
+}
