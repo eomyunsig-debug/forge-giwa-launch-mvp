@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "engines": {
-    "node": ">=22.12.0",
+    "node": ">=22.22.0",
     "pnpm": ">=10"
   },
   "scripts": {
@@ -14,7 +14,8 @@
     "format": "prettier --write . && pnpm contracts:fmt",
     "format:check": "prettier --check . && pnpm contracts:fmt:check",
     "lint": "eslint . --max-warnings=0",
-    "typecheck": "pnpm -r --if-present typecheck",
+    "typecheck": "pnpm typecheck:tools && pnpm -r --if-present typecheck",
+    "typecheck:tools": "tsc -p tsconfig.tools.json",
     "test": "vitest run",
     "test:web": "pnpm --filter @forge/web test",
     "test:indexer": "pnpm --filter @forge/indexer test",
@@ -26,23 +27,24 @@
     "contracts:fmt": "scripts/foundry.sh fmt",
     "contracts:fmt:check": "scripts/foundry.sh fmt --check",
     "contracts:snapshot": "scripts/foundry.sh snapshot",
+    "contracts:snapshot:check": "scripts/foundry.sh snapshot --check",
     "abi:generate": "tsx scripts/export-abis.ts",
     "test:e2e": "playwright test",
     "verify:secrets": "tsx scripts/secret-scan.ts",
     "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:contracts && pnpm contracts:build && pnpm contracts:build:all && pnpm abi:generate && pnpm build && pnpm verify:secrets"
   },
   "devDependencies": {
-    "@eslint/js": "^9.32.0",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.54.1",
     "@types/node": "^24.1.0",
-    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/coverage-v8": "^4.1.10",
     "concurrently": "^9.2.0",
-    "eslint": "^9.32.0",
+    "eslint": "^10.8.0",
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.38.0",
-    "vitest": "^3.2.4"
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10"
   }
 }

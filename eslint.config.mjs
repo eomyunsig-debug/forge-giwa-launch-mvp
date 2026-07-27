@@ -14,6 +14,8 @@ export default tseslint.config(
       "**/artifacts/**",
       "**/playwright-report/**",
       "**/test-results/**",
+      "**/*.config.{js,mjs,ts}",
+      "scripts/**/*.ts",
     ],
   },
   eslint.configs.recommended,
@@ -45,13 +47,6 @@ export default tseslint.config(
         "error",
         { allowNumber: true },
       ],
-    },
-  },
-  {
-    files: ["**/*.config.{js,mjs,ts}", "scripts/**/*.ts"],
-    rules: {
-      "@typescript-eslint/no-unsafe-assignment": "off",
-      "@typescript-eslint/no-unsafe-member-access": "off",
     },
   },
 );

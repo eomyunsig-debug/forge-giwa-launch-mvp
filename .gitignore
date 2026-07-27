@@ -9,6 +9,7 @@ coverage/
 .DS_Store
 .tools/
 data/
+.data/
 artifacts/*
 !artifacts/abi/
 !artifacts/abi/*.json
