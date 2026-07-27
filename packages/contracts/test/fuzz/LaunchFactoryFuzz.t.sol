@@ -115,8 +115,9 @@ contract LaunchFactoryFuzzTest is TestBase {
         for (uint256 index; index < count; ++index) {
             // `index < 4`, so this conversion cannot truncate.
             // forge-lint: disable-next-line(unsafe-typecast)
+            uint16 allocationBps = uint16(index * 100);
             (, LaunchFactory.LaunchRecord memory record) =
-                _launch(factory, adapter, CREATOR, uint16(index * 100), 0.1 ether, "MULTI");
+                _launch(factory, adapter, CREATOR, allocationBps, 0.1 ether, "MULTI");
             assertTrue(record.token != previousToken);
             assertTrue(record.vestingVault != previousVault);
             assertEq(factory.launchIdByToken(record.token), index + 1);

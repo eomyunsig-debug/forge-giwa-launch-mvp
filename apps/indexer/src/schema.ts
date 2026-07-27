@@ -1,4 +1,4 @@
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 export const SCHEMA_SQL = `
 PRAGMA foreign_keys = ON;
@@ -48,6 +48,39 @@ CREATE TABLE IF NOT EXISTS raw_logs (
 
 CREATE INDEX IF NOT EXISTS raw_logs_replay_order
   ON raw_logs (chain_id, block_number, transaction_index, log_index);
+
+CREATE TABLE IF NOT EXISTS metadata_hydration_retries (
+  chain_id INTEGER NOT NULL,
+  block_number INTEGER NOT NULL CHECK (block_number >= 0),
+  block_hash TEXT NOT NULL,
+  transaction_hash TEXT NOT NULL,
+  log_index INTEGER NOT NULL CHECK (log_index >= 0),
+  attempts INTEGER NOT NULL CHECK (attempts > 0),
+  retry_at TEXT NOT NULL,
+  PRIMARY KEY (
+    chain_id,
+    block_number,
+    block_hash,
+    transaction_hash,
+    log_index
+  ),
+  FOREIGN KEY (
+    chain_id,
+    block_number,
+    block_hash,
+    transaction_hash,
+    log_index
+  ) REFERENCES raw_logs (
+    chain_id,
+    block_number,
+    block_hash,
+    transaction_hash,
+    log_index
+  ) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS metadata_hydration_retry_queue
+  ON metadata_hydration_retries (chain_id, retry_at);
 
 CREATE TABLE IF NOT EXISTS contracts (
   chain_id INTEGER NOT NULL,

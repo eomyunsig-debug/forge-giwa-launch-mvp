@@ -42,6 +42,12 @@ const localPoolAbi = parseAbi([
   "event Swap(address indexed recipient,bool indexed nativeToToken,uint256 amountIn,uint256 amountOut,uint256 tokenReserve,uint256 nativeReserve)",
   "event ReservesSynced(uint256 tokenReserve,uint256 nativeReserve)",
 ]);
+const v2PairAbi = parseAbi([
+  "event Swap(address indexed sender,uint256 amount0In,uint256 amount1In,uint256 amount0Out,uint256 amount1Out,address indexed to)",
+  "event Sync(uint112 reserve0,uint112 reserve1)",
+  "function token0() view returns (address)",
+  "function token1() view returns (address)",
+]);
 
 const metadataSchema = z.object({
   name: z.string().trim().min(1).max(40),
@@ -66,11 +72,35 @@ export interface ForgeRpcBlockSourceOptions {
   readonly chainId: number;
   readonly factoryAddress: string;
   readonly trackedContracts: () => TrackedContracts;
+  readonly poolEventKind?: PoolEventKind;
   readonly metadataBaseUrl?: string;
   readonly client?: PublicClient;
 }
 
 export type FinalityTag = "latest" | "safe" | "finalized";
+export type PoolEventKind = "local" | "v2";
+
+export function resolvePoolEventKind(
+  chainId: number,
+  configured?: PoolEventKind,
+): PoolEventKind {
+  const expected =
+    chainId === 31_337 ? "local" : chainId === 91_342 ? "v2" : null;
+  if (expected === null) {
+    throw new Error(`Unsupported Forge indexer chain: ${chainId.toString()}`);
+  }
+  if (configured !== undefined && configured !== expected) {
+    throw new Error(
+      `Pool event kind ${configured} is invalid for chain ${chainId.toString()}; expected ${expected}`,
+    );
+  }
+  return expected;
+}
+
+export interface V2PoolOrientation {
+  readonly tokenAddress: string;
+  readonly tokenIs0: boolean;
+}
 
 /**
  * Reads canonical Forge events from an HTTP JSON-RPC endpoint.
@@ -85,12 +115,18 @@ export class ForgeRpcBlockSource implements RpcBlockSource {
   readonly chainId: number;
   readonly factoryAddress: Address;
   private readonly trackedContracts: () => TrackedContracts;
+  private readonly poolEventKind: PoolEventKind;
+  private readonly v2PoolOrientations = new Map<string, V2PoolOrientation>();
   private readonly metadataBaseUrl: URL | null;
 
   constructor(options: ForgeRpcBlockSourceOptions) {
     this.chainId = options.chainId;
     this.factoryAddress = getAddress(options.factoryAddress);
     this.trackedContracts = options.trackedContracts;
+    this.poolEventKind = resolvePoolEventKind(
+      options.chainId,
+      options.poolEventKind,
+    );
     this.metadataBaseUrl = options.metadataBaseUrl
       ? new URL(options.metadataBaseUrl)
       : null;
@@ -174,6 +210,9 @@ export class ForgeRpcBlockSource implements RpcBlockSource {
     for (const [pool, token] of discoveredPools) {
       pools.set(normalizeAddress(pool), normalizeAddress(token));
     }
+    if (this.poolEventKind === "v2") {
+      await this.resolveV2PoolOrientations(pools, blockNumber);
+    }
     const vaults = new Set(
       [...tracked.vaults, ...discoveredVaults].map(normalizeAddress),
     );
@@ -200,8 +239,9 @@ export class ForgeRpcBlockSource implements RpcBlockSource {
 
     const timestamp = new Date(Number(block.timestamp) * 1_000).toISOString();
     const logs: RawChainLog[] = [];
+    const transactionSenders = new Map<string, string>();
     for (const log of merged.values()) {
-      const decoded =
+      let decoded =
         launches.get(logIdentity(log)) ??
         this.decodeTrackedLog(log, tokens, pools, vaults);
       if (!decoded) continue;
@@ -212,6 +252,18 @@ export class ForgeRpcBlockSource implements RpcBlockSource {
         log.logIndex == null
       ) {
         throw new Error("RPC returned a pending log for a canonical block");
+      }
+      if (decoded.type === "TradeExecuted") {
+        const transactionHash = normalizeHash(log.transactionHash);
+        let sender = transactionSenders.get(transactionHash);
+        if (!sender) {
+          const transaction = await this.client.getTransaction({
+            hash: transactionHash as Hash,
+          });
+          sender = normalizeAddress(transaction.from);
+          transactionSenders.set(transactionHash, sender);
+        }
+        decoded = { ...decoded, traderAddress: sender };
       }
       logs.push({
         chainId,
@@ -366,6 +418,11 @@ export class ForgeRpcBlockSource implements RpcBlockSource {
       }
       const poolToken = pools.get(address);
       if (poolToken) {
+        if (this.poolEventKind === "v2") {
+          const orientation = this.v2PoolOrientations.get(address);
+          if (!orientation) return null;
+          return decodeV2PairLog(log, address, orientation);
+        }
         try {
           const decoded = decodeEventLog({
             abi: localPoolAbi,
@@ -430,7 +487,50 @@ export class ForgeRpcBlockSource implements RpcBlockSource {
     return null;
   }
 
-  private async readCommittedMetadata(
+  private async resolveV2PoolOrientations(
+    pools: ReadonlyMap<string, string>,
+    blockNumber: bigint,
+  ): Promise<void> {
+    await Promise.all(
+      [...pools].map(async ([poolAddress, tokenAddress]) => {
+        const existing = this.v2PoolOrientations.get(poolAddress);
+        if (existing?.tokenAddress === tokenAddress) return;
+
+        const pair = getAddress(poolAddress);
+        const [token0, token1] = await Promise.all([
+          this.client.readContract({
+            address: pair,
+            abi: v2PairAbi,
+            functionName: "token0",
+            blockNumber,
+          }),
+          this.client.readContract({
+            address: pair,
+            abi: v2PairAbi,
+            functionName: "token1",
+            blockNumber,
+          }),
+        ]);
+        const normalizedToken = normalizeAddress(tokenAddress);
+        const normalized0 = normalizeAddress(token0);
+        const normalized1 = normalizeAddress(token1);
+        if (
+          (normalized0 === normalizedToken) ===
+          (normalized1 === normalizedToken)
+        ) {
+          throw new Error(
+            `V2 pool ${poolAddress} does not contain exactly one launch token`,
+          );
+        }
+        this.v2PoolOrientations.set(poolAddress, {
+          tokenAddress: normalizedToken,
+          tokenIs0: normalized0 === normalizedToken,
+        });
+      }),
+    );
+  }
+
+  async readCommittedMetadata(
     uri: string,
     expectedHash: Hash,
     tokenName: string,
@@ -475,6 +575,66 @@ export class ForgeRpcBlockSource implements RpcBlockSource {
     } catch {
       return null;
     }
+  }
+}
+
+export function decodeV2PairLog(
+  log: Pick<Log, "data" | "topics">,
+  poolAddress: string,
+  orientation: V2PoolOrientation,
+): DecodedEvent | null {
+  try {
+    const decoded = decodeEventLog({
+      abi: v2PairAbi,
+      data: log.data,
+      topics: log.topics,
+      strict: true,
+    });
+    if (decoded.eventName === "Sync") {
+      return {
+        type: "LiquidityUpdated",
+        tokenAddress: orientation.tokenAddress,
+        poolAddress: normalizeAddress(poolAddress),
+        nativeReserve: (orientation.tokenIs0
+          ? decoded.args.reserve1
+          : decoded.args.reserve0
+        ).toString(),
+        tokenReserve: (orientation.tokenIs0
+          ? decoded.args.reserve0
+          : decoded.args.reserve1
+        ).toString(),
+      };
+    }
+    const tokenIn = orientation.tokenIs0
+      ? decoded.args.amount0In
+      : decoded.args.amount1In;
+    const tokenOut = orientation.tokenIs0
+      ? decoded.args.amount0Out
+      : decoded.args.amount1Out;
+    const nativeIn = orientation.tokenIs0
+      ? decoded.args.amount1In
+      : decoded.args.amount0In;
+    const nativeOut = orientation.tokenIs0
+      ? decoded.args.amount1Out
+      : decoded.args.amount0Out;
+    const buy =
+      nativeIn > 0n && tokenOut > 0n && tokenIn === 0n && nativeOut === 0n;
+    const sell =
+      tokenIn > 0n && nativeOut > 0n && nativeIn === 0n && tokenOut === 0n;
+    if (!buy && !sell) return null;
+    return {
+      type: "TradeExecuted",
+      tokenAddress: orientation.tokenAddress,
+      poolAddress: normalizeAddress(poolAddress),
+      // getBlock replaces the recipient with the canonical transaction sender
+      // before persistence so distinct-buyer metrics cannot be recipient-spoofed.
+      traderAddress: normalizeAddress(decoded.args.to),
+      side: buy ? "buy" : "sell",
+      nativeAmount: (buy ? nativeIn : nativeOut).toString(),
+      tokenAmount: (buy ? tokenOut : tokenIn).toString(),
+    };
+  } catch {
+    return null;
   }
 }
 

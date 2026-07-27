@@ -7,6 +7,10 @@ import { ProtocolConfig } from "../src/ProtocolConfig.sol";
 import { ScriptBase } from "./ScriptBase.sol";
 
 contract DeployLocal is ScriptBase {
+    uint256 internal constant LOCAL_ANVIL_CHAIN_ID = 31_337;
+
+    error UnsupportedLocalChain(uint256 actualChainId);
+
     event LocalStackDeployed(
         uint256 indexed chainId,
         address indexed protocolConfig,
@@ -22,6 +26,9 @@ contract DeployLocal is ScriptBase {
             LocalConstantProductAdapter localAdapter
         )
     {
+        if (block.chainid != LOCAL_ANVIL_CHAIN_ID) {
+            revert UnsupportedLocalChain(block.chainid);
+        }
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
         address feeRecipient = vm.envOr("FEE_RECIPIENT", deployer);

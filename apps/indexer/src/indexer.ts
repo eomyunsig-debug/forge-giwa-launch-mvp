@@ -5,6 +5,8 @@ import { ProjectionEngine } from "./projector.js";
 import {
   EmbeddedEventDecoder,
   type BlockEnvelope,
+  type DecodedEvent,
+  deserializeDecodedEvent,
   type IndexerCheckpoint,
   type IndexerOptions,
   type LogDecoder,
@@ -41,6 +43,24 @@ export interface IngestResult {
   readonly duplicateLogs: number;
   readonly reorgFromBlock: string | null;
   readonly checkpoint: IndexerCheckpoint;
+}
+
+export interface PendingLaunchMetadata {
+  readonly chainId: number;
+  readonly blockNumber: number;
+  readonly blockHash: string;
+  readonly transactionHash: string;
+  readonly logIndex: number;
+  readonly metadataUri: string;
+  readonly metadataHash: `0x${string}`;
+  readonly name: string;
+  readonly symbol: string;
+  readonly attempts: number;
+}
+
+export interface HydratedLaunchMetadata {
+  readonly imageUrl: string;
+  readonly description: string;
 }
 
 export class IndexerService {
@@ -183,6 +203,170 @@ export class IndexerService {
     });
   }
 
+  getPendingLaunchMetadata(
+    chainId: number,
+    limit = 10,
+    now: Date = this.clock(),
+  ): PendingLaunchMetadata[] {
+    const safeChainId = chainIdSchema.parse(chainId);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      throw new Error("Invalid metadata hydration limit");
+    }
+    const retryCutoff = parseTimestamp(now.toISOString());
+    const rows = this.database.db
+      .prepare(
+        `SELECT r.chain_id, r.block_number, r.block_hash, r.transaction_hash,
+                r.log_index, r.decoded_event_json,
+                COALESCE(m.attempts, 0) AS attempts
+         FROM raw_logs AS r
+         LEFT JOIN metadata_hydration_retries AS m
+           ON m.chain_id = r.chain_id
+          AND m.block_number = r.block_number
+          AND m.block_hash = r.block_hash
+          AND m.transaction_hash = r.transaction_hash
+          AND m.log_index = r.log_index
+         WHERE r.chain_id = ?
+           AND r.decoded_event_json IS NOT NULL
+           AND json_extract(r.decoded_event_json, '$.type') = 'LaunchCreated'
+           AND (
+             json_extract(r.decoded_event_json, '$.imageUrl') IS NULL
+             OR json_extract(r.decoded_event_json, '$.description') IS NULL
+           )
+           AND (m.retry_at IS NULL OR m.retry_at <= ?)
+         ORDER BY
+           CASE WHEN m.retry_at IS NULL THEN 0 ELSE 1 END ASC,
+           COALESCE(m.retry_at, r.block_timestamp) ASC,
+           r.block_number ASC,
+           r.transaction_index ASC,
+           r.log_index ASC
+         LIMIT ?`,
+      )
+      .all(safeChainId, retryCutoff, limit) as {
+      chain_id: number;
+      block_number: number;
+      block_hash: string;
+      transaction_hash: string;
+      log_index: number;
+      decoded_event_json: string;
+      attempts: number;
+    }[];
+
+    const pending: PendingLaunchMetadata[] = [];
+    for (const row of rows) {
+      const event = this.deserializeIfLaunch(row.decoded_event_json);
+      if (!event || (event.imageUrl != null && event.description != null)) {
+        continue;
+      }
+      pending.push({
+        chainId: row.chain_id,
+        blockNumber: row.block_number,
+        blockHash: row.block_hash,
+        transactionHash: row.transaction_hash,
+        logIndex: row.log_index,
+        metadataUri: event.metadataUri,
+        metadataHash: event.metadataHash as `0x${string}`,
+        name: event.name,
+        symbol: event.symbol,
+        attempts: row.attempts,
+      });
+    }
+    return pending;
+  }
+
+  deferLaunchMetadata(identity: PendingLaunchMetadata, retryAt: Date): boolean {
+    const safeChainId = chainIdSchema.parse(identity.chainId);
+    const safeRetryAt = parseTimestamp(retryAt.toISOString());
+    const result = this.database.db
+      .prepare(
+        `INSERT INTO metadata_hydration_retries
+           (chain_id, block_number, block_hash, transaction_hash, log_index,
+            attempts, retry_at)
+         SELECT chain_id, block_number, block_hash, transaction_hash, log_index,
+                1, ?
+         FROM raw_logs
+         WHERE chain_id = ? AND block_number = ? AND block_hash = ?
+           AND transaction_hash = ? AND log_index = ?
+         ON CONFLICT (
+           chain_id, block_number, block_hash, transaction_hash, log_index
+         ) DO UPDATE SET
+           attempts = metadata_hydration_retries.attempts + 1,
+           retry_at = excluded.retry_at`,
+      )
+      .run(
+        safeRetryAt,
+        safeChainId,
+        identity.blockNumber,
+        normalizeHash(identity.blockHash),
+        normalizeHash(identity.transactionHash),
+        identity.logIndex,
+      );
+    return result.changes === 1;
+  }
+
+  hydrateLaunchMetadata(
+    identity: PendingLaunchMetadata,
+    metadata: HydratedLaunchMetadata,
+  ): boolean {
+    const safeChainId = chainIdSchema.parse(identity.chainId);
+    let changed = false;
+    this.database.transaction(() => {
+      const row = this.database.db
+        .prepare(
+          `SELECT decoded_event_json
+           FROM raw_logs
+           WHERE chain_id = ? AND block_number = ? AND block_hash = ?
+             AND transaction_hash = ? AND log_index = ?`,
+        )
+        .get(
+          safeChainId,
+          identity.blockNumber,
+          normalizeHash(identity.blockHash),
+          normalizeHash(identity.transactionHash),
+          identity.logIndex,
+        ) as { decoded_event_json: string | null } | undefined;
+      if (!row?.decoded_event_json) return;
+      const event = this.deserializeIfLaunch(row.decoded_event_json);
+      if (event?.metadataHash !== identity.metadataHash) return;
+
+      const hydrated = {
+        ...event,
+        imageUrl: metadata.imageUrl,
+        description: metadata.description,
+      };
+      const result = this.database.db
+        .prepare(
+          `UPDATE raw_logs SET decoded_event_json = ?
+           WHERE chain_id = ? AND block_number = ? AND block_hash = ?
+             AND transaction_hash = ? AND log_index = ?`,
+        )
+        .run(
+          serializeDecodedEvent(hydrated),
+          safeChainId,
+          identity.blockNumber,
+          normalizeHash(identity.blockHash),
+          normalizeHash(identity.transactionHash),
+          identity.logIndex,
+        );
+      if (result.changes !== 1) return;
+      this.database.db
+        .prepare(
+          `DELETE FROM metadata_hydration_retries
+           WHERE chain_id = ? AND block_number = ? AND block_hash = ?
+             AND transaction_hash = ? AND log_index = ?`,
+        )
+        .run(
+          safeChainId,
+          identity.blockNumber,
+          normalizeHash(identity.blockHash),
+          normalizeHash(identity.transactionHash),
+          identity.logIndex,
+        );
+      this.projector.rebuild(safeChainId);
+      changed = true;
+    });
+    return changed;
+  }
+
   getCheckpoint(chainId: number): IndexerCheckpoint {
     const safeChainId = chainIdSchema.parse(chainId);
     const row = this.database.db
@@ -321,6 +505,17 @@ export class IndexerService {
       blockTimestamp: timestamp,
       ...(log.decoded ? { decoded: log.decoded } : {}),
     };
+  }
+
+  private deserializeIfLaunch(
+    value: string,
+  ): Extract<DecodedEvent, { type: "LaunchCreated" }> | null {
+    try {
+      const parsed = deserializeDecodedEvent(value);
+      return parsed.type === "LaunchCreated" ? parsed : null;
+    } catch {
+      return null;
+    }
   }
 
   private rollbackFrom(chainId: number, blockNumber: number): void {

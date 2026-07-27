@@ -8,6 +8,7 @@ export interface IndexerPollerOptions {
   readonly finalityTag: FinalityTag;
   readonly intervalMs?: number;
   readonly maxBlocksPerCycle?: number;
+  readonly afterCycle?: () => Promise<void>;
 }
 
 export class IndexerPoller {
@@ -41,6 +42,12 @@ export class IndexerPoller {
         // IndexerService and RpcSynchronizer persist a sanitized error while
         // preserving the last-good projection. The next cycle retries.
         this.indexer.recordFailure(this.options.chainId, error);
+      }
+      try {
+        await this.options.afterCycle?.();
+      } catch {
+        // Metadata hydration and other non-canonical enrichment must never
+        // replace or invalidate the last-good on-chain projection.
       }
       await waitForNextCycle(this.intervalMs, signal);
     }

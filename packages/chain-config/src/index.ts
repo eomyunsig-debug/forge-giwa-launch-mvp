@@ -1,12 +1,23 @@
 import { defineChain, type Chain } from "viem";
 import { z } from "zod";
 
-const httpUrl = z
-  .url()
-  .refine(
-    (value) => value.startsWith("https://") || value.startsWith("http://"),
-  );
-const secureUrl = z.url().refine((value) => value.startsWith("https://"));
+export const GIWA_SEPOLIA_CHAIN_ID = 91_342;
+
+export const giwaSepoliaOfficialReference = {
+  checkedAt: "2026-07-28",
+  chainId: GIWA_SEPOLIA_CHAIN_ID,
+  rpcUrl: "https://sepolia-rpc.giwa.io",
+  flashblocksRpcUrl: "https://sepolia-rpc-flashblocks.giwa.io",
+  explorerUrl: "https://sepolia-explorer.giwa.io",
+  bridgeUrl: "https://sepolia-bridge.giwa.io/",
+  faucetUrl: "https://faucet.giwa.io/",
+  nativeCurrency: {
+    name: "Ether",
+    symbol: "ETH",
+    decimals: 18,
+  },
+} as const;
+
 const address = z.string().regex(/^0x[a-fA-F0-9]{40}$/);
 const optionalPlaceholder = <Schema extends z.ZodType>(schema: Schema) =>
   z.preprocess(
@@ -16,22 +27,33 @@ const optionalPlaceholder = <Schema extends z.ZodType>(schema: Schema) =>
 
 const remoteConfigSchema = z.object({
   GIWA_TESTNET_ENABLED: z.literal("true"),
-  GIWA_TESTNET_CHAIN_ID: z.coerce.number().int().positive(),
-  GIWA_TESTNET_RPC_URL: httpUrl,
-  GIWA_TESTNET_WS_URL: optionalPlaceholder(
-    z
-      .url()
-      .refine(
-        (value) => value.startsWith("wss://") || value.startsWith("ws://"),
-      ),
+  GIWA_TESTNET_CHAIN_ID: z.coerce
+    .number()
+    .pipe(z.literal(GIWA_SEPOLIA_CHAIN_ID)),
+  GIWA_TESTNET_RPC_URL: z.literal(giwaSepoliaOfficialReference.rpcUrl),
+  GIWA_TESTNET_WS_URL: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.undefined(),
   ),
-  GIWA_TESTNET_EXPLORER_URL: secureUrl,
-  GIWA_TESTNET_NATIVE_NAME: z.string().min(1).max(40),
-  GIWA_TESTNET_NATIVE_SYMBOL: z.string().min(1).max(12),
-  GIWA_TESTNET_NATIVE_DECIMALS: z.coerce.number().int().min(0).max(36),
+  GIWA_TESTNET_EXPLORER_URL: z.literal(
+    giwaSepoliaOfficialReference.explorerUrl,
+  ),
+  GIWA_TESTNET_NATIVE_NAME: z.literal(
+    giwaSepoliaOfficialReference.nativeCurrency.name,
+  ),
+  GIWA_TESTNET_NATIVE_SYMBOL: z.literal(
+    giwaSepoliaOfficialReference.nativeCurrency.symbol,
+  ),
+  GIWA_TESTNET_NATIVE_DECIMALS: z.coerce
+    .number()
+    .pipe(z.literal(giwaSepoliaOfficialReference.nativeCurrency.decimals)),
   GIWA_TESTNET_FINALITY_TAG: z.enum(["safe", "finalized"]),
-  GIWA_TESTNET_BRIDGE_URL: optionalPlaceholder(secureUrl),
-  GIWA_TESTNET_FAUCET_URL: optionalPlaceholder(secureUrl),
+  GIWA_TESTNET_BRIDGE_URL: optionalPlaceholder(
+    z.literal(giwaSepoliaOfficialReference.bridgeUrl),
+  ),
+  GIWA_TESTNET_FAUCET_URL: optionalPlaceholder(
+    z.literal(giwaSepoliaOfficialReference.faucetUrl),
+  ),
   GIWA_TESTNET_AMM_FACTORY: optionalPlaceholder(address),
   GIWA_TESTNET_AMM_ROUTER: optionalPlaceholder(address),
   GIWA_TESTNET_WRAPPED_NATIVE: optionalPlaceholder(address),
@@ -53,21 +75,6 @@ export interface ForgeChainConfig {
   };
   environment: "local" | "giwa-testnet";
 }
-
-export const giwaSepoliaOfficialReference = {
-  checkedAt: "2026-07-28",
-  chainId: 91_342,
-  rpcUrl: "https://sepolia-rpc.giwa.io",
-  flashblocksRpcUrl: "https://sepolia-rpc-flashblocks.giwa.io",
-  explorerUrl: "https://sepolia-explorer.giwa.io",
-  bridgeUrl: "https://sepolia-bridge.giwa.io/",
-  faucetUrl: "https://faucet.giwa.io/",
-  nativeCurrency: {
-    name: "Ether",
-    symbol: "ETH",
-    decimals: 18,
-  },
-} as const;
 
 export const localAnvilConfig: ForgeChainConfig = {
   chain: defineChain({
@@ -125,9 +132,6 @@ export function loadGiwaTestnetConfig(
       rpcUrls: {
         default: {
           http: [config.GIWA_TESTNET_RPC_URL],
-          ...(config.GIWA_TESTNET_WS_URL
-            ? { webSocket: [config.GIWA_TESTNET_WS_URL] }
-            : {}),
         },
       },
       blockExplorers: {
@@ -139,9 +143,6 @@ export function loadGiwaTestnetConfig(
       testnet: true,
     }),
     rpcUrl: config.GIWA_TESTNET_RPC_URL,
-    ...(config.GIWA_TESTNET_WS_URL
-      ? { webSocketUrl: config.GIWA_TESTNET_WS_URL }
-      : {}),
     confirmations: 1,
     finalityTag: config.GIWA_TESTNET_FINALITY_TAG,
     explorerUrl: config.GIWA_TESTNET_EXPLORER_URL,

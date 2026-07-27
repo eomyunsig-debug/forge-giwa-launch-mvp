@@ -403,9 +403,9 @@ export class ApiRepository {
         currentValueNative: null,
         valuationStatus: "unsupported",
       })),
-      claimableCreatorVestings: vestings.map((vesting) =>
-        calculateVesting(vesting, this.clock()),
-      ),
+      claimableCreatorVestings: vestings
+        .map((vesting) => calculateVesting(vesting, this.clock()))
+        .filter((vesting) => BigInt(vesting.claimable) > 0n),
       recentTransactions: transfers.map((transfer) => ({
         tokenAddress: transfer.token_address,
         transactionHash: transfer.transaction_hash,

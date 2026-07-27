@@ -7,11 +7,11 @@ import {
 
 const valid = {
   GIWA_TESTNET_ENABLED: "true",
-  GIWA_TESTNET_CHAIN_ID: "123",
-  GIWA_TESTNET_RPC_URL: "https://rpc.example.test",
-  GIWA_TESTNET_EXPLORER_URL: "https://explorer.example.test",
-  GIWA_TESTNET_NATIVE_NAME: "Test",
-  GIWA_TESTNET_NATIVE_SYMBOL: "TEST",
+  GIWA_TESTNET_CHAIN_ID: "91342",
+  GIWA_TESTNET_RPC_URL: "https://sepolia-rpc.giwa.io",
+  GIWA_TESTNET_EXPLORER_URL: "https://sepolia-explorer.giwa.io",
+  GIWA_TESTNET_NATIVE_NAME: "Ether",
+  GIWA_TESTNET_NATIVE_SYMBOL: "ETH",
   GIWA_TESTNET_NATIVE_DECIMALS: "18",
   GIWA_TESTNET_FINALITY_TAG: "safe",
 };
@@ -43,7 +43,31 @@ describe("GIWA chain config", () => {
   });
 
   it("loads a complete explicitly enabled testnet", () => {
-    expect(loadGiwaTestnetConfig(valid).chain.id).toBe(123);
+    expect(loadGiwaTestnetConfig(valid).chain.id).toBe(91_342);
+  });
+
+  it("rejects every chain other than the official GIWA Sepolia testnet", () => {
+    expect(() =>
+      loadGiwaTestnetConfig({
+        ...valid,
+        GIWA_TESTNET_CHAIN_ID: "1",
+      }),
+    ).toThrow("GIWA_TESTNET_CONFIG_INVALID");
+  });
+
+  it("rejects unverified network identity values instead of relabeling them", () => {
+    expect(() =>
+      loadGiwaTestnetConfig({
+        ...valid,
+        GIWA_TESTNET_RPC_URL: "https://rpc.example.test",
+      }),
+    ).toThrow("GIWA_TESTNET_CONFIG_INVALID");
+    expect(() =>
+      loadGiwaTestnetConfig({
+        ...valid,
+        GIWA_TESTNET_NATIVE_SYMBOL: "FAKE",
+      }),
+    ).toThrow("GIWA_TESTNET_CONFIG_INVALID");
   });
 
   it("treats explicit empty optional placeholders as unset", () => {

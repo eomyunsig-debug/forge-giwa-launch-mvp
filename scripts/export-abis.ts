@@ -5,10 +5,7 @@ const root = resolve(process.cwd());
 const contracts = [
   ["LaunchToken", "LaunchToken.sol/LaunchToken.json"],
   ["LaunchFactory", "LaunchFactory.sol/LaunchFactory.json"],
-  [
-    "CreatorVestingVault",
-    "CreatorVestingVault.sol/CreatorVestingVault.json",
-  ],
+  ["CreatorVestingVault", "CreatorVestingVault.sol/CreatorVestingVault.json"],
   [
     "PermanentLiquidityLocker",
     "PermanentLiquidityLocker.sol/PermanentLiquidityLocker.json",
@@ -27,11 +24,7 @@ async function main(): Promise<void> {
   await mkdir(outputDirectory, { recursive: true });
 
   for (const [name, artifactPath] of contracts) {
-    const sourcePath = resolve(
-      root,
-      "packages/contracts/out",
-      artifactPath,
-    );
+    const sourcePath = resolve(root, "packages/contracts/out", artifactPath);
     const artifact = JSON.parse(await readFile(sourcePath, "utf8")) as {
       abi?: unknown;
     };

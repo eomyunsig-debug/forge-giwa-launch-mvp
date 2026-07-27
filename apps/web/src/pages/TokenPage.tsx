@@ -14,6 +14,7 @@ import {
   erc20Abi,
   fetchTradeQuote,
   type TradeQuote,
+  type TransactionRequest,
 } from "@forge/sdk";
 import {
   createPublicClient,
@@ -51,6 +52,32 @@ const client = createPublicClient({
   chain: targetChain,
   transport: http(targetChain.rpcUrls.default.http[0]),
 });
+
+async function estimateTransactionCost(
+  request: TransactionRequest,
+): Promise<bigint | null> {
+  try {
+    const [gas, gasPrice] = await Promise.all([
+      client.estimateGas({
+        account: request.account,
+        to: request.to,
+        data: request.data,
+        value: request.value,
+      }),
+      client.getGasPrice(),
+    ]);
+    return gas * gasPrice;
+  } catch {
+    return null;
+  }
+}
+
+export function hasSufficientGas(
+  nativeBalance: bigint,
+  estimatedCost: bigint | null,
+): boolean {
+  return estimatedCost == null || nativeBalance >= estimatedCost;
+}
 
 function explorer(kind: "address" | "tx", value: string): string | null {
   const base = targetChain.blockExplorers?.default.url;
@@ -273,13 +300,22 @@ function TradePanel({
           args: [quote.account, quote.adapter],
         });
         if (allowance < quote.amountIn) {
-          setStatus("signing");
           const approval = buildApprovalRequest(
             quote.account,
             quote.token,
             quote.adapter,
             quote.amountIn,
           );
+          const [nativeBalance, approvalGasCost] = await Promise.all([
+            client.getBalance({ address: quote.account }),
+            estimateTransactionCost(approval),
+          ]);
+          if (!hasSufficientGas(nativeBalance, approvalGasCost)) {
+            setGasCost(approvalGasCost);
+            setStatus("insufficient-gas");
+            return;
+          }
+          setStatus("signing");
           await wallet.assertCurrentIntent(quote.account, quote.chainId);
           const approvalHash = await wallet.sendTransaction(approval);
           setStatus("confirming");
@@ -299,8 +335,21 @@ function TradePanel({
         setStatus("quote-expired");
         return;
       }
-      setStatus("signing");
       const request = buildTradeRequest(quote);
+      if (quote.side === "sell") {
+        const [nativeBalance, tradeGasCost] = await Promise.all([
+          client.getBalance({ address: quote.account }),
+          estimateTransactionCost(request),
+        ]);
+        if (tradeGasCost != null) {
+          setGasCost(tradeGasCost);
+          if (!hasSufficientGas(nativeBalance, tradeGasCost)) {
+            setStatus("insufficient-gas");
+            return;
+          }
+        }
+      }
+      setStatus("signing");
       await wallet.assertCurrentIntent(quote.account, quote.chainId);
       const hash = await wallet.sendTransaction(request);
       setTxHash(hash);

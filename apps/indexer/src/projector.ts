@@ -92,16 +92,31 @@ export class ProjectionEngine {
       )
       .all(chainId) as ReplayRow[];
 
-    for (const row of rows) {
-      const log: StoredLog = {
+    const replay = rows.map((row) => ({
+      log: {
         chainId: row.chain_id,
         blockNumber: row.block_number,
         blockHash: row.block_hash,
         transactionHash: row.transaction_hash,
         logIndex: row.log_index,
         blockTimestamp: row.block_timestamp,
-      };
-      this.apply(log, deserializeDecodedEvent(row.decoded_event_json));
+      } satisfies StoredLog,
+      event: deserializeDecodedEvent(row.decoded_event_json),
+    }));
+
+    // Constructor transfers and AMM mint/Sync logs precede LaunchCreated in the
+    // atomic launch transaction. Seed launch-owned entities first, then replay
+    // every dependent event in canonical order. This changes no fund state;
+    // it only makes projection foreign-key/order dependencies explicit.
+    for (const item of replay) {
+      if (item.event.type === "LaunchCreated") {
+        this.apply(item.log, item.event);
+      }
+    }
+    for (const item of replay) {
+      if (item.event.type !== "LaunchCreated") {
+        this.apply(item.log, item.event);
+      }
     }
     this.recomputeDerivedFacts(chainId);
   }

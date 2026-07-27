@@ -15,6 +15,8 @@ interface Vm {
     function expectPartialRevert(bytes4 revertData) external;
     function expectEmit(bool checkTopic1, bool checkTopic2, bool checkTopic3, bool checkData)
         external;
+    function setEnv(string calldata name, string calldata value) external;
+    function chainId(uint256 newChainId) external;
 }
 
 struct FuzzSelector {

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { draftSchema, statusLabel } from "../src/pages/CreatePage";
-import { statusCopy, type TradeStatus } from "../src/pages/TokenPage";
+import {
+  hasSufficientGas,
+  statusCopy,
+  type TradeStatus,
+} from "../src/pages/TokenPage";
 
 describe("create form validation", () => {
   const valid = {
@@ -60,5 +64,11 @@ describe("transaction states use precise language", () => {
   it("keeps submitted separate from confirmed", () => {
     expect(statusCopy("submitted")).not.toBe(statusCopy("confirmed"));
     expect(statusLabel("reconciling")).toContain("인덱서");
+  });
+
+  it("uses the insufficient-gas state for sell approval or trade cost", () => {
+    expect(hasSufficientGas(1n, 2n)).toBe(false);
+    expect(hasSufficientGas(2n, 2n)).toBe(true);
+    expect(hasSufficientGas(0n, null)).toBe(true);
   });
 });

@@ -6,6 +6,10 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "json-summary"],
     },
-    projects: ["packages/*/vitest.config.ts", "apps/*/vitest.config.ts"],
+    projects: [
+      "packages/*/vitest.config.ts",
+      "apps/*/vitest.config.ts",
+      "apps/web/vite.config.ts",
+    ],
   },
 });

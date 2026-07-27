@@ -8,8 +8,9 @@ import { IndexerDatabase } from "../src/database.js";
 import { IndexerService } from "../src/indexer.js";
 import { ApiRepository } from "../src/queries.js";
 import { RpcSynchronizer } from "../src/rpc.js";
-import { DEAD_ADDRESS } from "../src/types.js";
+import { DEAD_ADDRESS, serializeDecodedEvent } from "../src/types.js";
 import {
+  address,
   ALICE,
   block,
   BOB,
@@ -18,6 +19,7 @@ import {
   FACTORY,
   hash,
   launchBlock,
+  launchEvent,
   POOL,
   TOKEN,
   transferEvent,
@@ -99,6 +101,42 @@ describe("event-sourced indexer", () => {
     ]);
   });
 
+  it("projects an initial AMM reserve update emitted before LaunchCreated", () => {
+    const { indexer, repository } = setup();
+    const original = launchBlock();
+    const launchLog = original.logs.find(
+      (log) => log.decoded?.type === "LaunchCreated",
+    );
+    if (!launchLog) throw new Error("Expected the launch log fixture");
+
+    indexer.ingestBlock({
+      ...original,
+      logs: [
+        ...original.logs.filter((log) => log.decoded?.type !== "LaunchCreated"),
+        {
+          ...launchLog,
+          logIndex: launchLog.logIndex,
+          transactionHash: hash(990),
+          decoded: {
+            type: "LiquidityUpdated",
+            tokenAddress: TOKEN,
+            poolAddress: POOL,
+            nativeReserve: "777",
+            tokenReserve: "888",
+          },
+        },
+        {
+          ...launchLog,
+          logIndex: launchLog.logIndex + 1,
+        },
+      ],
+    });
+
+    expect(repository.getLaunchDetail(CHAIN_ID, TOKEN)).toMatchObject({
+      actualLiquidityNative: "777",
+    });
+  });
+
   it("accepts independent blocks out of arrival order and checkpoints the head", () => {
     const { indexer, repository } = setup();
     indexer.ingestBlock(
@@ -155,6 +193,138 @@ describe("event-sourced indexer", () => {
       status: "synced",
     });
     expect(repository.listLaunches(CHAIN_ID).items).toHaveLength(1);
+  });
+
+  it("does not expose zero-claim vesting schedules as claimable", () => {
+    const { database, indexer } = setup();
+    indexer.ingestBlock(launchBlock());
+    const beforeCliff = new ApiRepository(
+      database,
+      indexer,
+      () => new Date("2026-01-01T12:00:00.000Z"),
+    );
+
+    const portfolio = beforeCliff.getPortfolio(CHAIN_ID, CREATOR) as {
+      claimableCreatorVestings: unknown[];
+    };
+    expect(portfolio.claimableCreatorVestings).toEqual([]);
+  });
+
+  it("hydrates transiently missing committed metadata and persists it in replay", () => {
+    const { indexer, repository } = setup();
+    const original = launchBlock();
+    indexer.ingestBlock({
+      ...original,
+      logs: original.logs.map((log) =>
+        log.decoded?.type === "LaunchCreated"
+          ? {
+              ...log,
+              decoded: {
+                ...log.decoded,
+                imageUrl: null,
+                description: null,
+              },
+            }
+          : log,
+      ),
+    });
+
+    const [pending] = indexer.getPendingLaunchMetadata(CHAIN_ID);
+    expect(pending).toBeDefined();
+    if (!pending) throw new Error("Expected a pending metadata record");
+    expect(
+      indexer.hydrateLaunchMetadata(pending, {
+        imageUrl: "https://metadata.example/restored.png",
+        description: "재시도 후 해시가 일치한 메타데이터",
+      }),
+    ).toBe(true);
+
+    indexer.rebuild(CHAIN_ID);
+    expect(repository.getLaunchDetail(CHAIN_ID, TOKEN)).toMatchObject({
+      imageUrl: "https://metadata.example/restored.png",
+      description: "재시도 후 해시가 일치한 메타데이터",
+    });
+    expect(indexer.getPendingLaunchMetadata(CHAIN_ID)).toEqual([]);
+  });
+
+  it("persists metadata backoff without starving later launches", () => {
+    const { database, indexer } = setup();
+    database.ensureChain(CHAIN_ID);
+    const insert = database.db.prepare(
+      `INSERT INTO raw_logs
+         (chain_id, block_number, block_hash, transaction_hash,
+          transaction_index, log_index, contract_address, topics_json, data,
+          block_timestamp, decoded_event_json, ingested_at)
+       VALUES (?, ?, ?, ?, 0, 0, ?, '[]', '0x', ?, ?, ?)`,
+    );
+    for (let launchIndex = 1; launchIndex <= 6; launchIndex += 1) {
+      const timestamp = new Date(
+        Date.UTC(2026, 0, 2, 0, 0, launchIndex),
+      ).toISOString();
+      insert.run(
+        CHAIN_ID,
+        launchIndex,
+        hash(4_000 + launchIndex),
+        hash(5_000 + launchIndex),
+        FACTORY,
+        timestamp,
+        serializeDecodedEvent(
+          launchEvent({
+            tokenAddress: address(100 + launchIndex),
+            poolAddress: address(200 + launchIndex),
+            vestingVaultAddress: address(300 + launchIndex),
+            lockerAddress: address(400 + launchIndex),
+            lpTokenAddress: address(500 + launchIndex),
+            metadataHash: hash(6_000 + launchIndex),
+            metadataUri: `https://metadata.example/${launchIndex.toString()}.json`,
+            imageUrl: null,
+            description: null,
+          }),
+        ),
+        timestamp,
+      );
+    }
+
+    const firstBatch = indexer.getPendingLaunchMetadata(
+      CHAIN_ID,
+      5,
+      new Date("2026-01-02T12:00:00.000Z"),
+    );
+    expect(firstBatch).toHaveLength(5);
+    for (const pending of firstBatch) {
+      expect(
+        indexer.deferLaunchMetadata(
+          pending,
+          new Date("2026-01-02T12:01:00.000Z"),
+        ),
+      ).toBe(true);
+    }
+
+    const restarted = new IndexerService(database, undefined, {
+      clock: () => new Date("2026-01-02T12:00:01.000Z"),
+    });
+    const nextBatch = restarted.getPendingLaunchMetadata(CHAIN_ID, 5);
+    expect(nextBatch).toHaveLength(1);
+    expect(nextBatch[0]).toMatchObject({
+      metadataUri: "https://metadata.example/6.json",
+      attempts: 0,
+    });
+    const nextPending = nextBatch[0];
+    if (!nextPending) throw new Error("Expected the sixth metadata record");
+    expect(
+      restarted.deferLaunchMetadata(
+        nextPending,
+        new Date("2026-01-02T12:02:00.000Z"),
+      ),
+    ).toBe(true);
+
+    const retryBatch = restarted.getPendingLaunchMetadata(
+      CHAIN_ID,
+      5,
+      new Date("2026-01-02T12:01:01.000Z"),
+    );
+    expect(retryBatch).toHaveLength(5);
+    expect(retryBatch.every((pending) => pending.attempts === 1)).toBe(true);
   });
 
   it("rolls projections back when a known block hash changes", () => {

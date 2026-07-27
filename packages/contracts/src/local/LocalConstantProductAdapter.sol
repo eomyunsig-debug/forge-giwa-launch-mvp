@@ -10,6 +10,8 @@ import { LocalConstantProductPool } from "./LocalConstantProductPool.sol";
 contract LocalConstantProductAdapter is IAMMAdapter {
     using SafeERC20 for IERC20;
 
+    uint256 internal constant LOCAL_ANVIL_CHAIN_ID = 31_337;
+
     error ZeroAddress();
     error AddressHasNoCode(address target);
     error PoolDoesNotExist(address token);
@@ -18,10 +20,17 @@ contract LocalConstantProductAdapter is IAMMAdapter {
     error InsufficientLiquidityMinted(uint256 minimum, uint256 actual);
     error TokenTransferMismatch(uint256 expected, uint256 actual);
     error DirectNativeTransferForbidden();
+    error UnsupportedLocalChain(uint256 actualChainId);
 
     mapping(address token => address pool) public poolFor;
 
     event LocalPoolCreated(address indexed token, address indexed pool, bytes32 indexed salt);
+
+    constructor() {
+        if (block.chainid != LOCAL_ANVIL_CHAIN_ID) {
+            revert UnsupportedLocalChain(block.chainid);
+        }
+    }
 
     function adapterId() external pure returns (bytes32) {
         return keccak256("FORGE_LOCAL_CONSTANT_PRODUCT_TEST_ONLY_V1");

@@ -10,6 +10,10 @@ import { IndexerPoller } from "./poller.js";
 import { LocalUploadStore } from "./upload.js";
 
 const addressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/u);
+const optionalFinalityTag = z.preprocess(
+  (value) => (value === "" ? undefined : value),
+  z.enum(["latest", "safe", "finalized"]).optional(),
+);
 const environmentSchema = z.object({
   INDEXER_DATABASE_PATH: z.string().min(1).default(".data/indexer.sqlite"),
   INDEXER_PORT: z.coerce.number().int().min(1).max(65_535).default(8787),
@@ -26,9 +30,11 @@ const environmentSchema = z.object({
     .string()
     .regex(/^(0|[1-9]\d*)$/u)
     .default("0"),
-  INDEXER_FINALITY_TAG: z
-    .enum(["latest", "safe", "finalized"])
-    .default("latest"),
+  INDEXER_FINALITY_TAG: optionalFinalityTag,
+  INDEXER_POOL_EVENT_KIND: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.enum(["local", "v2"]).optional(),
+  ),
   INDEXER_POLL_INTERVAL_MS: z.coerce
     .number()
     .int()
@@ -95,6 +101,9 @@ if (
     rpcUrl: environment.INDEXER_RPC_URL,
     chainId,
     factoryAddress: environment.INDEXER_FACTORY_ADDRESS,
+    ...(environment.INDEXER_POOL_EVENT_KIND
+      ? { poolEventKind: environment.INDEXER_POOL_EVENT_KIND }
+      : {}),
     metadataBaseUrl: new URL("uploads/", `${baseUrl}/`).toString(),
     trackedContracts: () => {
       const tokens = database.db
@@ -119,11 +128,40 @@ if (
       };
     },
   });
+  const hydrateMetadata = async (): Promise<void> => {
+    const now = Date.now();
+    for (const pending of indexer.getPendingLaunchMetadata(
+      chainId,
+      5,
+      new Date(now),
+    )) {
+      const metadata = await source.readCommittedMetadata(
+        pending.metadataUri,
+        pending.metadataHash,
+        pending.name,
+        pending.symbol,
+      );
+      if (metadata) {
+        indexer.hydrateLaunchMetadata(pending, {
+          imageUrl: metadata.image,
+          description: metadata.description,
+        });
+        continue;
+      }
+
+      const attempts = pending.attempts + 1;
+      const delay = Math.min(60_000, 1_000 * 2 ** Math.min(attempts, 6));
+      indexer.deferLaunchMetadata(pending, new Date(now + delay));
+    }
+  };
   const poller = new IndexerPoller(indexer, source, {
     chainId,
     startBlock: BigInt(environment.INDEXER_START_BLOCK),
-    finalityTag: environment.INDEXER_FINALITY_TAG,
+    finalityTag:
+      environment.INDEXER_FINALITY_TAG ??
+      (chainId === 91_342 ? "safe" : "latest"),
     intervalMs: environment.INDEXER_POLL_INTERVAL_MS,
+    afterCycle: hydrateMetadata,
   });
   void poller.run(pollingAbort.signal).catch((error: unknown) => {
     indexer.recordFailure(chainId, error);

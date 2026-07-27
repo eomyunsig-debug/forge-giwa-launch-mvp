@@ -11,6 +11,10 @@ import { ScriptBase } from "./ScriptBase.sol";
 ///      audited V2-compatible integration and its addresses are independently
 ///      verified. A disabled adapter cannot be allowlisted.
 contract DeployGiwa is ScriptBase {
+    uint256 internal constant GIWA_SEPOLIA_CHAIN_ID = 91_342;
+
+    error UnsupportedGiwaChain(uint256 configuredChainId, uint256 actualChainId);
+
     event GiwaStackDeployed(
         uint256 indexed chainId,
         address indexed protocolConfig,
@@ -27,8 +31,10 @@ contract DeployGiwa is ScriptBase {
             GiwaV2Adapter giwaAdapter
         )
     {
+        if (block.chainid != GIWA_SEPOLIA_CHAIN_ID) {
+            revert UnsupportedGiwaChain(GIWA_SEPOLIA_CHAIN_ID, block.chainid);
+        }
         uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
-        uint256 expectedChainId = vm.envUint("GIWA_CHAIN_ID");
         address deployer = vm.addr(deployerKey);
         address feeRecipient = vm.envOr("FEE_RECIPIENT", deployer);
         uint256 creationFee = vm.envOr("CREATION_FEE_WEI", uint256(0));
@@ -43,7 +49,7 @@ contract DeployGiwa is ScriptBase {
         protocolConfig =
             new ProtocolConfig(deployer, feeRecipient, creationFee, minimumLiquidity, false);
         giwaAdapter =
-            new GiwaV2Adapter(expectedChainId, v2Factory, v2Router, wrappedNative, approved);
+            new GiwaV2Adapter(GIWA_SEPOLIA_CHAIN_ID, v2Factory, v2Router, wrappedNative, approved);
         launchFactory = new LaunchFactory(protocolConfig);
         if (approved) {
             protocolConfig.setAdapterApproval(address(giwaAdapter), true);

@@ -112,7 +112,7 @@ contract GiwaV2Adapter is IAMMAdapter, ReentrancyGuard {
     }
 
     function adapterId() external pure returns (bytes32) {
-        return keccak256("FORGE_GIWA_VERIFIED_V2_COMPATIBLE_V1");
+        return keccak256("FORGE_GIWA_V2_COMPATIBLE_CANDIDATE_V1");
     }
 
     function isTestOnly() external pure returns (bool) {
