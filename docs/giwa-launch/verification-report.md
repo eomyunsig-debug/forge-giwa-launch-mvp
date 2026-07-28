@@ -25,7 +25,7 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
 | Dependency audit             | no known vulnerabilities                                         |
 | Public-demo production build | passed                                                           |
 | Public response protections  | CSP, nosniff, frame, referrer, and permissions via worker proxy  |
-| Playwright                   | 1 end-to-end scenario passed in 25.9 seconds                     |
+| Playwright                   | 1 end-to-end scenario passed in 27.9 seconds                     |
 
 Slither and `git-secrets` were not installed in the execution environment.
 Their absence did not replace the Foundry suites or repository secret scanner.
