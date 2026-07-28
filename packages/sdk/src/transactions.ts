@@ -16,6 +16,7 @@ import {
 } from "./abis.js";
 
 const BPS = 10_000n;
+export const DEFAULT_TRADE_QUOTE_TTL_MS = 30_000;
 
 export interface ContractDeployment {
   chainId: number;
@@ -176,6 +177,28 @@ export async function fetchTradeQuote(
       ? Number(((spotOut - amountOut) * BPS) / spotOut)
       : 0;
   const nowMs = options.nowMs ?? Date.now();
+  const ttlMs = options.ttlMs ?? DEFAULT_TRADE_QUOTE_TTL_MS;
+  if (!Number.isSafeInteger(ttlMs) || ttlMs < 1_000) {
+    throw new Error("INVALID_QUOTE_TTL");
+  }
+  if (
+    options.deadlineSeconds != null &&
+    (!Number.isSafeInteger(options.deadlineSeconds) ||
+      options.deadlineSeconds <= 0)
+  ) {
+    throw new Error("INVALID_TRADE_DEADLINE");
+  }
+
+  const ttlDeadlineMs = nowMs + ttlMs;
+  const requestedDeadlineMs =
+    options.deadlineSeconds == null
+      ? ttlDeadlineMs
+      : nowMs + options.deadlineSeconds * 1_000;
+  const deadline = Math.floor(
+    Math.min(ttlDeadlineMs, requestedDeadlineMs) / 1_000,
+  );
+  const expiresAt = deadline * 1_000;
+  if (expiresAt <= nowMs) throw new Error("INVALID_QUOTE_TTL");
 
   return {
     chainId: deployment.chainId,
@@ -188,9 +211,9 @@ export async function fetchTradeQuote(
     minAmountOut,
     priceImpactBps: impact,
     slippageBps: options.slippageBps,
-    deadline: Math.floor(nowMs / 1_000) + (options.deadlineSeconds ?? 10 * 60),
+    deadline,
     createdAt: nowMs,
-    expiresAt: nowMs + (options.ttlMs ?? 30_000),
+    expiresAt,
     pool: state.pool,
     feeBps: deployment.adapterKind === "local-test-only" ? 30 : null,
   };

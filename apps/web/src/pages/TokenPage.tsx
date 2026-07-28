@@ -7,14 +7,20 @@ import {
   shortenAddress,
   type LaunchDetail,
   type RiskFact,
+  type Trade,
 } from "@forge/shared";
 import {
+  assertIntentFresh,
   buildApprovalRequest,
   buildTradeRequest,
+  createTransactionIntent,
   erc20Abi,
   fetchTradeQuote,
+  isUserRejectedRequest,
+  StaleIntentError,
   type TradeQuote,
   type TransactionRequest,
+  type TransactionIntent,
 } from "@forge/sdk";
 import {
   createPublicClient,
@@ -79,10 +85,209 @@ export function hasSufficientGas(
   return estimatedCost == null || nativeBalance >= estimatedCost;
 }
 
+export function isTradeSubmissionLocked(status: TradeStatus): boolean {
+  return [
+    "balance-loading",
+    "signing",
+    "submitted",
+    "confirming",
+    "reconciling",
+  ].includes(status);
+}
+
+export interface TradeSubmissionLock {
+  current: boolean;
+}
+
+export function beginTradeSubmission(
+  lock: TradeSubmissionLock,
+  status: TradeStatus,
+): boolean {
+  if (lock.current || isTradeSubmissionLocked(status)) return false;
+  lock.current = true;
+  return true;
+}
+
+export function statusAfterExecutionError(
+  broadcastHash: Hash | null,
+): TradeStatus {
+  return broadcastHash ? "confirming" : "reverted";
+}
+
+export type PendingTransactionKind = "approval" | "trade";
+
+export function pendingTransactionStorageKey(
+  chainId: number,
+  tokenAddress: string,
+  account: string,
+): string {
+  return `forge:pending:${chainId.toString()}:${tokenAddress.toLowerCase()}:${account.toLowerCase()}`;
+}
+
+export function parsePendingTransaction(
+  raw: string | null,
+): { hash: Hash; kind: PendingTransactionKind } | null {
+  if (!raw) return null;
+  try {
+    const value = JSON.parse(raw) as { hash?: unknown; kind?: unknown };
+    if (
+      typeof value.hash !== "string" ||
+      !/^0x[a-fA-F0-9]{64}$/.test(value.hash) ||
+      (value.kind !== "approval" && value.kind !== "trade")
+    ) {
+      return null;
+    }
+    return { hash: value.hash as Hash, kind: value.kind };
+  } catch {
+    return null;
+  }
+}
+
+export function shouldConfirmIndexedTrade(
+  status: TradeStatus,
+  receiptLookupUnknown: boolean,
+  pendingKind: PendingTransactionKind | null,
+  txHash: Hash | null,
+  indexedTransactionHashes: readonly string[],
+): boolean {
+  if (
+    !txHash ||
+    (status !== "reconciling" &&
+      !(
+        status === "confirming" &&
+        receiptLookupUnknown &&
+        pendingKind === "trade"
+      ))
+  ) {
+    return false;
+  }
+  return indexedTransactionHashes.some(
+    (candidate) => candidate.toLowerCase() === txHash.toLowerCase(),
+  );
+}
+
+export function quoteSecondsRemaining(
+  quote: Pick<TradeQuote, "expiresAt">,
+  nowMs = Date.now(),
+): number {
+  return Math.max(0, Math.ceil((quote.expiresAt - nowMs) / 1_000));
+}
+
+export function isQuoteExpired(
+  quote: Pick<TradeQuote, "expiresAt">,
+  nowMs = Date.now(),
+): boolean {
+  return nowMs >= quote.expiresAt;
+}
+
+function roundedDivide(numerator: bigint, denominator: bigint): bigint {
+  return (numerator + denominator / 2n) / denominator;
+}
+
+export function formatTradeUnitPrice(
+  nativeAmount: string,
+  tokenAmount: string,
+  significantDigits = 6,
+): string | null {
+  const numerator = BigInt(nativeAmount);
+  const denominator = BigInt(tokenAmount);
+  if (
+    numerator <= 0n ||
+    denominator <= 0n ||
+    !Number.isSafeInteger(significantDigits) ||
+    significantDigits < 2
+  ) {
+    return null;
+  }
+
+  let exponent = numerator.toString().length - denominator.toString().length;
+  if (
+    (exponent >= 0 && numerator < denominator * 10n ** BigInt(exponent)) ||
+    (exponent < 0 && numerator * 10n ** BigInt(-exponent) < denominator)
+  ) {
+    exponent -= 1;
+  }
+
+  if (exponent < -6 || exponent >= significantDigits) {
+    const shift = significantDigits - 1 - exponent;
+    let mantissa =
+      shift >= 0
+        ? roundedDivide(numerator * 10n ** BigInt(shift), denominator)
+        : roundedDivide(numerator, denominator * 10n ** BigInt(-shift));
+    if (mantissa >= 10n ** BigInt(significantDigits)) {
+      mantissa /= 10n;
+      exponent += 1;
+    }
+    const digits = mantissa
+      .toString()
+      .padStart(significantDigits, "0")
+      .slice(0, significantDigits);
+    const fraction = digits.slice(1).replace(/0+$/, "");
+    return `${digits[0]}${fraction ? `.${fraction}` : ""}e${exponent}`;
+  }
+
+  const decimalPlaces = Math.max(0, significantDigits - 1 - exponent);
+  const scaled = roundedDivide(
+    numerator * 10n ** BigInt(decimalPlaces),
+    denominator,
+  );
+  if (decimalPlaces === 0) return scaled.toString();
+  const digits = scaled.toString().padStart(decimalPlaces + 1, "0");
+  const whole = digits.slice(0, -decimalPlaces);
+  const fraction = digits.slice(-decimalPlaces).replace(/0+$/, "");
+  return fraction ? `${whole}.${fraction}` : whole;
+}
+
+export function latestTradePrice(trades: Trade[]): string | null {
+  const latest = trades
+    .filter((trade) => BigInt(trade.tokenAmount) > 0n)
+    .reduce<Trade | null>((current, trade) => {
+      if (!current) return trade;
+      const blockDifference =
+        BigInt(trade.blockNumber) - BigInt(current.blockNumber);
+      if (blockDifference > 0n) return trade;
+      if (blockDifference === 0n && trade.logIndex > current.logIndex) {
+        return trade;
+      }
+      return current;
+    }, null);
+  return latest
+    ? formatTradeUnitPrice(latest.nativeAmount, latest.tokenAmount)
+    : null;
+}
+
 function explorer(kind: "address" | "tx", value: string): string | null {
   const base = targetChain.blockExplorers?.default.url;
   if (!base || !/^[a-zA-Z0-9x]+$/.test(value)) return null;
   return `${base.replace(/\/$/, "")}/${kind}/${value}`;
+}
+
+function CopyAddressButton({ address }: { address: string }) {
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(address);
+      setStatus("copied");
+    } catch {
+      setStatus("failed");
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      className="text-link address-copy"
+      aria-label="토큰 컨트랙트 주소 복사"
+      onClick={() => void copy()}
+    >
+      {status === "copied"
+        ? "복사됨"
+        : status === "failed"
+          ? "복사 실패"
+          : "주소 복사"}
+    </button>
+  );
 }
 
 function riskTone(fact: RiskFact) {
@@ -151,18 +356,77 @@ function TradePanel({
   const [amount, setAmount] = useState("");
   const [slippageBps, setSlippageBps] = useState(100);
   const [quote, setQuote] = useState<TradeQuote | null>(null);
+  const [tradeIntent, setTradeIntent] = useState<TransactionIntent | null>(
+    null,
+  );
   const [status, setStatus] = useState<TradeStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [gasCost, setGasCost] = useState<bigint | null>(null);
   const [txHash, setTxHash] = useState<Hash | null>(null);
+  const [pendingKind, setPendingKind] = useState<PendingTransactionKind | null>(
+    null,
+  );
+  const [pendingAccount, setPendingAccount] = useState<Address | null>(null);
+  const [receiptLookupUnknown, setReceiptLookupUnknown] = useState(false);
+  const [quoteClockMs, setQuoteClockMs] = useState(() => Date.now());
   const quoteRequestId = useRef(0);
+  const executionInFlight = useRef(false);
 
-  function invalidateQuote() {
+  function clearQuote() {
     quoteRequestId.current += 1;
     setQuote(null);
+    setTradeIntent(null);
     setGasCost(null);
-    setStatus("idle");
-    setError(null);
+  }
+
+  function invalidateQuote() {
+    clearQuote();
+    if (!executionInFlight.current && txHash == null) {
+      setStatus("idle");
+      setError(null);
+    }
+  }
+
+  function rememberPendingTransaction(
+    hash: Hash,
+    kind: PendingTransactionKind,
+    account: Address,
+  ) {
+    setTxHash(hash);
+    setPendingKind(kind);
+    setPendingAccount(account);
+    setReceiptLookupUnknown(false);
+    try {
+      window.sessionStorage.setItem(
+        pendingTransactionStorageKey(
+          launch.chainId,
+          launch.tokenAddress,
+          account,
+        ),
+        JSON.stringify({ hash, kind }),
+      );
+    } catch {
+      // A blocked storage API must not block the wallet transaction.
+    }
+  }
+
+  function forgetPendingTransaction(account = pendingAccount) {
+    if (account) {
+      try {
+        window.sessionStorage.removeItem(
+          pendingTransactionStorageKey(
+            launch.chainId,
+            launch.tokenAddress,
+            account,
+          ),
+        );
+      } catch {
+        // In-memory state remains authoritative for this tab.
+      }
+    }
+    setPendingKind(null);
+    setPendingAccount(null);
+    setReceiptLookupUnknown(false);
   }
 
   useEffect(() => {
@@ -170,23 +434,95 @@ function TradePanel({
   }, [wallet.account, wallet.chainId, launch.chainId, launch.tokenAddress]);
 
   useEffect(() => {
+    if (!wallet.account || wallet.chainId !== launch.chainId) return;
+    const stored = (() => {
+      try {
+        return parsePendingTransaction(
+          window.sessionStorage.getItem(
+            pendingTransactionStorageKey(
+              launch.chainId,
+              launch.tokenAddress,
+              wallet.account,
+            ),
+          ),
+        );
+      } catch {
+        return null;
+      }
+    })();
+    if (!stored) return;
+    clearQuote();
+    setTxHash(stored.hash);
+    setPendingKind(stored.kind);
+    setPendingAccount(wallet.account);
+    setReceiptLookupUnknown(true);
+    setStatus("confirming");
+    setError(
+      "이전에 제출한 트랜잭션의 영수증 상태를 다시 확인해야 합니다. 같은 요청을 재제출하지 마세요.",
+    );
+  }, [wallet.account, wallet.chainId, launch.chainId, launch.tokenAddress]);
+
+  useEffect(() => {
     if (
-      status === "reconciling" &&
-      txHash &&
-      launch.trades.some(
-        (trade) => trade.transactionHash.toLowerCase() === txHash.toLowerCase(),
+      shouldConfirmIndexedTrade(
+        status,
+        receiptLookupUnknown,
+        pendingKind,
+        txHash,
+        launch.trades.map((trade) => trade.transactionHash),
       )
     ) {
       setStatus("confirmed");
-      setQuote(null);
-      setGasCost(null);
+      clearQuote();
       setAmount("");
+      forgetPendingTransaction();
     }
-  }, [launch.trades, status, txHash]);
+  }, [launch.trades, status, txHash, receiptLookupUnknown, pendingKind]);
+
+  useEffect(() => {
+    if (!quote) return;
+    setQuoteClockMs(Date.now());
+    const timer = window.setInterval(() => setQuoteClockMs(Date.now()), 250);
+    return () => window.clearInterval(timer);
+  }, [quote]);
+
+  const submissionLocked = isTradeSubmissionLocked(status);
+  const secondsRemaining = quote
+    ? quoteSecondsRemaining(quote, quoteClockMs)
+    : null;
+
+  useEffect(() => {
+    if (
+      quote &&
+      quoteClockMs >= quote.expiresAt &&
+      !isTradeSubmissionLocked(status)
+    ) {
+      clearQuote();
+      setStatus("quote-expired");
+    }
+  }, [quote, quoteClockMs, status]);
 
   const token = launch.tokenAddress as Address;
 
+  async function assertFreshRequest(
+    intent: TransactionIntent,
+    request: TransactionRequest,
+  ) {
+    await wallet.assertCurrentIntent(intent.account as Address, intent.chainId);
+    if (!wallet.account || wallet.chainId == null) {
+      throw new StaleIntentError("account");
+    }
+    assertIntentFresh(intent, {
+      chainId: wallet.chainId,
+      account: wallet.account,
+      target: request.to,
+      calldata: request.data,
+      value: request.value,
+    });
+  }
+
   async function getQuote() {
+    if (submissionLocked || executionInFlight.current) return;
     setError(null);
     if (deployment?.chainId !== launch.chainId) {
       setError("이 체인의 거래 adapter가 활성화되지 않았습니다.");
@@ -220,8 +556,22 @@ function TradePanel({
         { slippageBps },
       );
       if (requestId !== quoteRequestId.current) return;
-      setQuote(next);
       const request = buildTradeRequest(next);
+      const intent = createTransactionIntent({
+        chainId: next.chainId,
+        kind: next.side,
+        request,
+        token: next.token,
+        amountIn: next.amountIn,
+        minAmountOut: next.minAmountOut,
+        deadline: next.deadline,
+        quoteCreatedAt: next.createdAt,
+        quoteExpiresAt: next.expiresAt,
+      });
+      setQuote(next);
+      setTradeIntent(intent);
+      setQuoteClockMs(Date.now());
+      setTxHash(null);
       try {
         const [gas, gasPrice] = await Promise.all([
           client.estimateGas({
@@ -263,14 +613,26 @@ function TradePanel({
   }
 
   async function execute() {
-    if (!quote || !deployment || !wallet.account) return;
-    setError(null);
-    if (Date.now() >= quote.expiresAt) {
-      setStatus("quote-expired");
+    if (
+      !quote ||
+      !tradeIntent ||
+      !deployment ||
+      !wallet.account ||
+      !beginTradeSubmission(executionInFlight, status)
+    ) {
       return;
     }
+    let broadcastHash: Hash | null = null;
+    let broadcastKind: "approval" | "trade" | null = null;
     try {
-      await wallet.assertCurrentIntent(quote.account, quote.chainId);
+      setError(null);
+      if (isQuoteExpired(quote)) {
+        clearQuote();
+        setStatus("quote-expired");
+        return;
+      }
+      const quotedRequest = buildTradeRequest(quote);
+      await assertFreshRequest(tradeIntent, quotedRequest);
       setStatus("balance-loading");
       if (quote.side === "buy") {
         const balance = await client.getBalance({ address: quote.account });
@@ -315,23 +677,41 @@ function TradePanel({
             setStatus("insufficient-gas");
             return;
           }
+          const approvalIntent = createTransactionIntent({
+            chainId: quote.chainId,
+            kind: "approve",
+            request: approval,
+            token: quote.token,
+            amountIn: quote.amountIn,
+            deadline: quote.deadline,
+            quoteCreatedAt: quote.createdAt,
+            quoteExpiresAt: quote.expiresAt,
+          });
           setStatus("signing");
-          await wallet.assertCurrentIntent(quote.account, quote.chainId);
+          await assertFreshRequest(approvalIntent, approval);
           const approvalHash = await wallet.sendTransaction(approval);
+          broadcastHash = approvalHash;
+          broadcastKind = "approval";
+          rememberPendingTransaction(approvalHash, "approval", quote.account);
           setStatus("confirming");
           const approvalReceipt = await client.waitForTransactionReceipt({
             hash: approvalHash,
           });
           if (approvalReceipt.status !== "success") {
+            forgetPendingTransaction(quote.account);
             setStatus("reverted");
             setError("정확한 수량 승인 트랜잭션이 실패했습니다.");
             return;
           }
-          await wallet.assertCurrentIntent(quote.account, quote.chainId);
+          broadcastHash = null;
+          broadcastKind = null;
+          forgetPendingTransaction(quote.account);
+          setTxHash(null);
         }
       }
 
-      if (Date.now() >= quote.expiresAt) {
+      if (isQuoteExpired(quote)) {
+        clearQuote();
         setStatus("quote-expired");
         return;
       }
@@ -350,27 +730,116 @@ function TradePanel({
         }
       }
       setStatus("signing");
-      await wallet.assertCurrentIntent(quote.account, quote.chainId);
+      await assertFreshRequest(tradeIntent, request);
       const hash = await wallet.sendTransaction(request);
-      setTxHash(hash);
+      broadcastHash = hash;
+      broadcastKind = "trade";
+      rememberPendingTransaction(hash, "trade", quote.account);
+      clearQuote();
       setStatus("submitted");
       setStatus("confirming");
       const receipt = await client.waitForTransactionReceipt({ hash });
       if (receipt.status !== "success") {
+        forgetPendingTransaction(quote.account);
         setStatus("reverted");
         setError("거래 컨트랙트가 트랜잭션을 되돌렸습니다.");
         return;
       }
+      broadcastHash = null;
+      broadcastKind = null;
+      forgetPendingTransaction(quote.account);
       setStatus("reconciling");
-      await onReconcile();
+      try {
+        await onReconcile();
+      } catch {
+        setError(
+          "거래 영수증은 확인됐지만 인덱서 반영을 아직 확인하지 못했습니다.",
+        );
+      }
     } catch (cause) {
       const message =
         cause instanceof Error ? cause.message : "거래에 실패했습니다.";
-      if (message.includes("취소")) setStatus("rejected");
-      else if (message.toLowerCase().includes("slippage"))
+      if (broadcastHash) {
+        setTxHash(broadcastHash);
+        setReceiptLookupUnknown(true);
+        setStatus(statusAfterExecutionError(broadcastHash));
+        setError(
+          `${broadcastKind === "approval" ? "승인" : "거래"} 트랜잭션은 제출됐지만 영수증 상태를 확인하지 못했습니다. 같은 요청을 다시 제출하지 말고 explorer에서 먼저 확인하세요.`,
+        );
+      } else if (cause instanceof StaleIntentError) {
+        clearQuote();
+        setStatus(cause.reason === "expired" ? "quote-expired" : "reverted");
+        setError(
+          cause.reason === "expired"
+            ? "견적 유효 시간이 지나 거래 요청을 폐기했습니다."
+            : "지갑 또는 거래 조건이 변경되어 견적을 폐기했습니다.",
+        );
+      } else if (isUserRejectedRequest(cause)) {
+        setStatus("rejected");
+        setError("지갑에서 요청을 취소했습니다.");
+      } else if (message.toLowerCase().includes("slippage")) {
         setStatus("slippage-exceeded");
-      else setStatus("reverted");
-      setError(message);
+        setError(message);
+      } else {
+        setStatus(statusAfterExecutionError(null));
+        setError(message);
+      }
+    } finally {
+      executionInFlight.current = false;
+    }
+  }
+
+  async function recheckPendingReceipt() {
+    if (
+      !txHash ||
+      !pendingKind ||
+      !pendingAccount ||
+      !receiptLookupUnknown ||
+      executionInFlight.current
+    ) {
+      return;
+    }
+    executionInFlight.current = true;
+    setError(null);
+    try {
+      const receipt = await client.getTransactionReceipt({ hash: txHash });
+      if (receipt.status !== "success") {
+        forgetPendingTransaction(pendingAccount);
+        setStatus("reverted");
+        setError("제출된 트랜잭션이 온체인에서 되돌려졌습니다.");
+        return;
+      }
+      const recoveredKind = pendingKind;
+      forgetPendingTransaction(pendingAccount);
+      if (recoveredKind === "approval") {
+        setTxHash(null);
+        if (!quote || isQuoteExpired(quote)) {
+          clearQuote();
+          setStatus("quote-expired");
+          setError(
+            "승인은 확인됐지만 거래 견적이 만료되어 다시 조회해야 합니다.",
+          );
+        } else {
+          setStatus("quoted");
+        }
+        return;
+      }
+      setStatus("reconciling");
+      try {
+        await onReconcile();
+      } catch {
+        setError(
+          "거래 영수증은 확인됐지만 인덱서 반영을 아직 확인하지 못했습니다.",
+        );
+      }
+    } catch {
+      setStatus("confirming");
+      setReceiptLookupUnknown(true);
+      setError(
+        "영수증 상태를 아직 확인하지 못했습니다. 같은 요청을 재제출하지 말고 잠시 후 다시 확인하세요.",
+      );
+    } finally {
+      executionInFlight.current = false;
     }
   }
 
@@ -381,6 +850,7 @@ function TradePanel({
           role="tab"
           aria-selected={side === "buy"}
           className={side === "buy" ? "buy active" : "buy"}
+          disabled={submissionLocked}
           onClick={() => {
             if (side !== "buy") {
               setSide("buy");
@@ -394,6 +864,7 @@ function TradePanel({
           role="tab"
           aria-selected={side === "sell"}
           className={side === "sell" ? "sell active" : "sell"}
+          disabled={submissionLocked}
           onClick={() => {
             if (side !== "sell") {
               setSide("sell");
@@ -418,6 +889,7 @@ function TradePanel({
             }}
             inputMode="decimal"
             placeholder="0.0"
+            disabled={submissionLocked}
             data-testid="trade-amount"
           />
           <strong>
@@ -433,6 +905,7 @@ function TradePanel({
             type="button"
             aria-pressed={slippageBps === bps}
             className={slippageBps === bps ? "active" : ""}
+            disabled={submissionLocked}
             onClick={() => {
               if (slippageBps !== bps) {
                 setSlippageBps(bps);
@@ -480,10 +953,12 @@ function TradePanel({
           </strong>
         </div>
         <div>
-          <span>deadline</span>
+          <span>견적 만료</span>
           <strong>
-            {quote
-              ? new Date(quote.deadline * 1_000).toLocaleTimeString("ko-KR")
+            {quote && secondsRemaining != null
+              ? `${new Date(quote.expiresAt).toLocaleTimeString(
+                  "ko-KR",
+                )} · ${secondsRemaining}초 남음`
               : "—"}
           </strong>
         </div>
@@ -504,6 +979,15 @@ function TradePanel({
           트랜잭션 {shortenAddress(txHash)}
         </ExternalLink>
       ) : null}
+      {txHash && receiptLookupUnknown ? (
+        <Button
+          tone="neutral"
+          onClick={() => void recheckPendingReceipt()}
+          data-testid="recheck-receipt"
+        >
+          영수증 다시 확인
+        </Button>
+      ) : null}
       {wallet.account == null ? (
         <Button
           tone="neutral"
@@ -520,7 +1004,8 @@ function TradePanel({
         <Button
           tone={side}
           onClick={() => void execute()}
-          busy={["signing", "confirming", "balance-loading"].includes(status)}
+          busy={submissionLocked}
+          disabled={submissionLocked}
           data-testid="execute-trade"
         >
           {status === "approval-required"
@@ -531,8 +1016,8 @@ function TradePanel({
         <Button
           tone={side}
           onClick={() => void getQuote()}
-          busy={status === "quote-loading"}
-          disabled={!amount}
+          busy={status === "quote-loading" || submissionLocked}
+          disabled={!amount || submissionLocked}
           data-testid="get-quote"
         >
           온체인 견적 확인
@@ -614,15 +1099,25 @@ export function TokenPage() {
 
   const launch = query.data?.data;
   if (query.isLoading) {
-    return <div className="page skeleton-card token-page-skeleton" />;
+    return (
+      <div
+        className="page skeleton-card token-page-skeleton"
+        role="status"
+        aria-label="토큰 데이터 불러오는 중"
+      />
+    );
   }
-  if (!launch || query.error) {
+  if (!launch) {
     return (
       <section className="page empty-state" role="alert">
-        <h1>온체인 런치를 찾지 못했습니다</h1>
+        <h1>
+          {query.error
+            ? "토큰 데이터를 불러오지 못했습니다"
+            : "온체인 런치를 찾지 못했습니다"}
+        </h1>
         <p>
-          주소와 인덱서 상태를 확인하세요. 없는 데이터를 0으로 표시하지
-          않습니다.
+          주소와 인덱서 상태를 확인하세요. 실패한 응답을 빈 값이나 0으로
+          표시하지 않습니다.
         </p>
         <Link to="/">런치 피드로 돌아가기</Link>
       </section>
@@ -638,6 +1133,16 @@ export function TokenPage() {
   const allocationDisclosed = launch.riskFacts.some(
     (fact) => fact.key === "creator-allocation" && fact.status === "confirmed",
   );
+  const recentPrice = latestTradePrice(launch.trades);
+  const holdersByBalance = launch.holders.slice().sort((left, right) => {
+    const leftBalance = BigInt(left.balance);
+    const rightBalance = BigInt(right.balance);
+    return leftBalance === rightBalance
+      ? 0
+      : leftBalance > rightBalance
+        ? -1
+        : 1;
+  });
 
   return (
     <section className="page token-page">
@@ -665,12 +1170,13 @@ export function TokenPage() {
               <ExternalLink href={explorer("address", launch.tokenAddress)}>
                 컨트랙트
               </ExternalLink>
+              <CopyAddressButton address={launch.tokenAddress} />
             </div>
           </div>
         </div>
         <div className="token-header__badges">
           {sourceVerified ? (
-            <Badge status="confirmed">Contract Template Verified</Badge>
+            <Badge status="confirmed">Contract Source Verified</Badge>
           ) : null}
           {liquidityLocked ? (
             <Badge status="confirmed">Liquidity Locked</Badge>
@@ -678,12 +1184,15 @@ export function TokenPage() {
           {allocationDisclosed ? (
             <Badge status="confirmed">Allocation Disclosed</Badge>
           ) : null}
-          {launch.socialOwnershipVerified ? (
-            <Badge status="confirmed">Creator Social Verified</Badge>
-          ) : null}
         </div>
         <DataFreshness meta={query.data?.meta ?? null} />
       </div>
+
+      {query.error ? (
+        <div className="inline-alert inline-alert--danger" role="alert">
+          최신 토큰 데이터를 갱신하지 못했습니다. 마지막 정상 응답을 유지합니다.
+        </div>
+      ) : null}
 
       <div className="token-layout">
         <div className="token-content">
@@ -706,7 +1215,7 @@ export function TokenPage() {
                 }
               />
               <Metric
-                label="유통 공급량"
+                label="거래 가능 일반 물량 · 풀·락커·베스팅·소각·zero 제외"
                 value={
                   launch.circulatingSupply == null
                     ? "데이터 수집 중"
@@ -718,8 +1227,12 @@ export function TokenPage() {
                 value={launch.uniqueHolders?.toLocaleString("ko-KR") ?? "—"}
               />
               <Metric
-                label="최근 거래"
-                value={launch.recentTrades?.toLocaleString("ko-KR") ?? "—"}
+                label={`최근 체결가 · 표시 체결 ${launch.trades.length}건 기준`}
+                value={
+                  recentPrice == null
+                    ? "—"
+                    : `${recentPrice} ${targetChain.nativeCurrency.symbol}/${launch.symbol}`
+                }
               />
             </div>
           </section>
@@ -765,13 +1278,23 @@ export function TokenPage() {
                 <h2>홀더 분포</h2>
               </div>
               <span>
-                일반 지갑 상위 10 비중{" "}
-                {formatBps(launch.topTenOrdinaryHolderBps)}
+                거래 가능 일반 물량(풀·락커·베스팅·소각·zero 제외) 대비 상위 10
+                지갑 비중 {formatBps(launch.topTenOrdinaryHolderBps)}
               </span>
             </div>
             {launch.holders.length ? (
-              <div className="holder-table" role="table">
-                {launch.holders.slice(0, 20).map((holder) => (
+              <div
+                className="holder-table"
+                role="table"
+                aria-label="잔액 내림차순 홀더 분포"
+              >
+                <div role="row">
+                  <strong role="columnheader">주소</strong>
+                  <strong role="columnheader">구분</strong>
+                  <strong role="columnheader">잔액</strong>
+                  <strong role="columnheader">거래 가능 물량 비중</strong>
+                </div>
+                {holdersByBalance.slice(0, 20).map((holder) => (
                   <div role="row" key={holder.address}>
                     <code role="cell">{shortenAddress(holder.address)}</code>
                     <span role="cell">{holder.category}</span>

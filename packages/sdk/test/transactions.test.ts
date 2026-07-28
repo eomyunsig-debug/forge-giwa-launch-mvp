@@ -165,6 +165,42 @@ describe("trade quote builder", () => {
     expect(quote.minAmountOut).toBe(891n);
     expect(quote.priceImpactBps).toBe(1_000);
     expect(quote.feeBps).toBe(30);
+    expect(quote.deadline).toBe(1_030);
+    expect(quote.expiresAt).toBe(quote.deadline * 1_000);
+  });
+
+  it("uses the earliest quote TTL or requested onchain deadline", async () => {
+    const client = mockClient((functionName) => {
+      if (functionName === "quoteExactInput") return 900n;
+      if (functionName === "getPoolState") {
+        return {
+          pool,
+          tokenReserve: 10_000n,
+          nativeReserve: 1_000n,
+          totalLiquidity: 1_000n,
+          initialized: true,
+        };
+      }
+      throw new Error(`unexpected read: ${functionName}`);
+    });
+
+    const quote = await fetchTradeQuote(
+      client,
+      deployment,
+      account,
+      token,
+      "buy",
+      100n,
+      {
+        slippageBps: 100,
+        nowMs: 1_000_000,
+        ttlMs: 60_000,
+        deadlineSeconds: 20,
+      },
+    );
+
+    expect(quote.deadline).toBe(1_020);
+    expect(quote.expiresAt).toBe(1_020_000);
   });
 
   it("keeps an unverified GIWA swap fee undisclosed", async () => {
