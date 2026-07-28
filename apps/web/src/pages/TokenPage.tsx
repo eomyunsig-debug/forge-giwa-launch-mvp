@@ -39,6 +39,7 @@ import {
   summarizeTradePrices,
 } from "../components";
 import { deployment, isPublicDemo, targetChain } from "../config";
+import { MotionPresence, MotionSwap } from "../motion";
 import { useWallet } from "../wallet";
 
 export type TradeStatus =
@@ -343,7 +344,7 @@ function HolderDistribution({ launch }: { launch: LaunchDetail }) {
   });
 
   return (
-    <section className="glass-panel distribution-card">
+    <section className="glass-panel distribution-card motion-reveal motion-reveal--4">
       <div className="section-heading section-heading--compact">
         <div>
           <span className="eyebrow">DISTRIBUTION</span>
@@ -437,6 +438,8 @@ function TradePanel({
   const [quoteClockMs, setQuoteClockMs] = useState(() => Date.now());
   const quoteRequestId = useRef(0);
   const executionInFlight = useRef(false);
+  const actionIncomingRef = useRef<HTMLDivElement>(null);
+  const restoreActionFocus = useRef(false);
 
   function clearQuote() {
     quoteRequestId.current += 1;
@@ -610,6 +613,7 @@ function TradePanel({
       return;
     }
     setStatus("quote-loading");
+    restoreActionFocus.current = true;
     const requestId = ++quoteRequestId.current;
     try {
       const next = await fetchTradeQuote(
@@ -688,6 +692,7 @@ function TradePanel({
     ) {
       return;
     }
+    restoreActionFocus.current = true;
     let broadcastHash: Hash | null = null;
     let broadcastKind: "approval" | "trade" | null = null;
     try {
@@ -909,12 +914,32 @@ function TradePanel({
     }
   }
 
+  const actionKey =
+    wallet.account == null
+      ? "connect"
+      : wallet.chainId !== targetChain.id
+        ? "wrong-network"
+        : quote
+          ? `execute:${side}:${status}`
+          : `quote:${side}:${status}`;
+  const quoteKey = quote ? `${quote.side}:${quote.createdAt}` : "empty";
+  const actionBusy = status === "quote-loading" || submissionLocked;
+
+  useEffect(() => {
+    if (!restoreActionFocus.current || actionBusy) return;
+    const action =
+      actionIncomingRef.current?.querySelector<HTMLButtonElement>("button");
+    if (!action || action.disabled) return;
+    restoreActionFocus.current = false;
+    action.focus({ preventScroll: true });
+  }, [actionBusy, actionKey]);
+
   return (
     <section className="trade-panel glass-panel" aria-labelledby="trade-title">
-      <div className="trade-tabs" role="tablist" aria-label="거래 방향">
+      <div className="trade-tabs" role="group" aria-label="거래 방향">
         <button
-          role="tab"
-          aria-selected={side === "buy"}
+          type="button"
+          aria-pressed={side === "buy"}
           className={side === "buy" ? "buy active" : "buy"}
           disabled={submissionLocked}
           onClick={() => {
@@ -927,8 +952,8 @@ function TradePanel({
           <span aria-hidden="true">↗</span> 매수
         </button>
         <button
-          role="tab"
-          aria-selected={side === "sell"}
+          type="button"
+          aria-pressed={side === "sell"}
           className={side === "sell" ? "sell active" : "sell"}
           disabled={submissionLocked}
           onClick={() => {
@@ -983,69 +1008,84 @@ function TradePanel({
           </button>
         ))}
       </div>
-      <div className="quote-box" aria-live="polite">
-        <div>
-          <span>예상 수령량</span>
-          <strong>
-            {quote
-              ? `${formatUnits(quote.amountOut)} ${
-                  side === "buy"
-                    ? launch.symbol
-                    : targetChain.nativeCurrency.symbol
-                }`
-              : "—"}
-          </strong>
+      <MotionSwap motionKey={quoteKey} className="quote-motion">
+        <div className="quote-box">
+          <div>
+            <span>예상 수령량</span>
+            <strong>
+              {quote
+                ? `${formatUnits(quote.amountOut)} ${
+                    side === "buy"
+                      ? launch.symbol
+                      : targetChain.nativeCurrency.symbol
+                  }`
+                : "—"}
+            </strong>
+          </div>
+          <div>
+            <span>최소 수령량</span>
+            <strong>{quote ? formatUnits(quote.minAmountOut) : "—"}</strong>
+          </div>
+          <div>
+            <span>가격 영향</span>
+            <strong>{formatBps(quote?.priceImpactBps)}</strong>
+          </div>
+          <div>
+            <span>AMM 수수료</span>
+            <strong>
+              {quote?.feeBps == null
+                ? "지원되지 않음"
+                : formatBps(quote.feeBps)}
+            </strong>
+          </div>
+          <div>
+            <span>네트워크 수수료 추정</span>
+            <strong>
+              {gasCost == null
+                ? "—"
+                : `${formatUnits(gasCost)} ${targetChain.nativeCurrency.symbol}`}
+            </strong>
+          </div>
+          <div>
+            <span>견적 만료</span>
+            <strong>
+              {quote && secondsRemaining != null
+                ? `${new Date(quote.expiresAt).toLocaleTimeString(
+                    "ko-KR",
+                  )} · ${secondsRemaining}초 남음`
+                : "—"}
+            </strong>
+          </div>
         </div>
-        <div>
-          <span>최소 수령량</span>
-          <strong>{quote ? formatUnits(quote.minAmountOut) : "—"}</strong>
-        </div>
-        <div>
-          <span>가격 영향</span>
-          <strong>{formatBps(quote?.priceImpactBps)}</strong>
-        </div>
-        <div>
-          <span>AMM 수수료</span>
-          <strong>
-            {quote?.feeBps == null ? "지원되지 않음" : formatBps(quote.feeBps)}
-          </strong>
-        </div>
-        <div>
-          <span>네트워크 수수료 추정</span>
-          <strong>
-            {gasCost == null
-              ? "—"
-              : `${formatUnits(gasCost)} ${targetChain.nativeCurrency.symbol}`}
-          </strong>
-        </div>
-        <div>
-          <span>견적 만료</span>
-          <strong>
-            {quote && secondsRemaining != null
-              ? `${new Date(quote.expiresAt).toLocaleTimeString(
-                  "ko-KR",
-                )} · ${secondsRemaining}초 남음`
-              : "—"}
-          </strong>
-        </div>
-      </div>
+      </MotionSwap>
       <div className="transaction-state" data-status={status} role="status">
-        <span aria-hidden="true">
-          {status === "confirmed" ? "✓" : status === "reverted" ? "×" : "·"}
-        </span>
-        {statusCopy(status)}
+        <MotionSwap motionKey={status} className="transaction-state__motion">
+          <span className="transaction-state__content">
+            <span aria-hidden="true">
+              {status === "confirmed" ? "✓" : status === "reverted" ? "×" : "·"}
+            </span>
+            {statusCopy(status)}
+          </span>
+        </MotionSwap>
       </div>
-      {error ? (
-        <div className="inline-alert inline-alert--danger" role="alert">
-          {error}
-        </div>
-      ) : null}
-      {txHash ? (
-        <ExternalLink href={explorer("tx", txHash)}>
-          트랜잭션 {shortenAddress(txHash)}
-        </ExternalLink>
-      ) : null}
-      {txHash && receiptLookupUnknown ? (
+      <MotionPresence show={Boolean(error)} className="trade-alert-motion">
+        {error ? (
+          <div className="inline-alert inline-alert--danger" role="alert">
+            {error}
+          </div>
+        ) : null}
+      </MotionPresence>
+      <MotionPresence show={Boolean(txHash)} className="trade-link-motion">
+        {txHash ? (
+          <ExternalLink href={explorer("tx", txHash)}>
+            트랜잭션 {shortenAddress(txHash)}
+          </ExternalLink>
+        ) : null}
+      </MotionPresence>
+      <MotionPresence
+        show={Boolean(txHash && receiptLookupUnknown)}
+        className="receipt-action-motion"
+      >
         <Button
           tone="neutral"
           onClick={() => void recheckPendingReceipt()}
@@ -1053,42 +1093,51 @@ function TradePanel({
         >
           영수증 다시 확인
         </Button>
-      ) : null}
-      {wallet.account == null ? (
-        <Button
-          tone="neutral"
-          onClick={() => void wallet.connect()}
-          data-testid="trade-connect"
-        >
-          지갑 연결
-        </Button>
-      ) : wallet.chainId !== targetChain.id ? (
-        <Button tone="danger" onClick={() => void wallet.switchToTargetChain()}>
-          {targetChain.name}로 전환
-        </Button>
-      ) : quote ? (
-        <Button
-          tone={side}
-          onClick={() => void execute()}
-          busy={submissionLocked}
-          disabled={submissionLocked}
-          data-testid="execute-trade"
-        >
-          {status === "approval-required"
-            ? `정확히 ${formatUnits(quote.amountIn)} ${launch.symbol} 승인 후 매도`
-            : `${side === "buy" ? "매수" : "매도"} 트랜잭션 확인`}
-        </Button>
-      ) : (
-        <Button
-          tone={side}
-          onClick={() => void getQuote()}
-          busy={status === "quote-loading" || submissionLocked}
-          disabled={!amount || submissionLocked}
-          data-testid="get-quote"
-        >
-          온체인 견적 확인
-        </Button>
-      )}
+      </MotionPresence>
+      <MotionSwap
+        motionKey={actionKey}
+        className="trade-action-motion"
+        incomingRef={actionIncomingRef}
+      >
+        {wallet.account == null ? (
+          <Button
+            tone="neutral"
+            onClick={() => void wallet.connect()}
+            data-testid="trade-connect"
+          >
+            지갑 연결
+          </Button>
+        ) : wallet.chainId !== targetChain.id ? (
+          <Button
+            tone="danger"
+            onClick={() => void wallet.switchToTargetChain()}
+          >
+            {targetChain.name}로 전환
+          </Button>
+        ) : quote ? (
+          <Button
+            tone={side}
+            onClick={() => void execute()}
+            busy={submissionLocked}
+            disabled={submissionLocked}
+            data-testid="execute-trade"
+          >
+            {status === "approval-required"
+              ? `정확히 ${formatUnits(quote.amountIn)} ${launch.symbol} 승인 후 매도`
+              : `${side === "buy" ? "매수" : "매도"} 트랜잭션 확인`}
+          </Button>
+        ) : (
+          <Button
+            tone={side}
+            onClick={() => void getQuote()}
+            busy={status === "quote-loading" || submissionLocked}
+            disabled={!amount || submissionLocked}
+            data-testid="get-quote"
+          >
+            온체인 견적 확인
+          </Button>
+        )}
+      </MotionSwap>
       <p className="trade-disclaimer">
         직접 AMM 호출을 포함한 모든 경로의 거래 수수료를 Forge가 강제하지
         않습니다. 지갑에서 대상·금액을 다시 확인하세요.
@@ -1120,34 +1169,43 @@ function ReportToken({ launch }: { launch: LaunchDetail }) {
 
   return (
     <div className="report-widget">
-      <button className="text-link" onClick={() => setOpen(!open)}>
+      <button
+        className="text-link"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
         이 토큰 신고
       </button>
-      {open ? (
+      <MotionPresence show={open} className="report-presence">
         <div className="report-form">
-          {sent ? (
-            <p role="status">신고가 기록되었습니다.</p>
-          ) : (
-            <>
-              <label>
-                <span>신고 이유</span>
-                <textarea
-                  value={reason}
-                  maxLength={500}
-                  onChange={(event) => setReason(event.target.value)}
-                />
-              </label>
-              <Button
-                tone="danger"
-                disabled={reason.trim().length < 10}
-                onClick={() => void submit()}
-              >
-                신고 기록
-              </Button>
-            </>
-          )}
+          <MotionSwap
+            motionKey={sent ? "sent" : "editing"}
+            className="report-state-motion"
+          >
+            {sent ? (
+              <p role="status">신고가 기록되었습니다.</p>
+            ) : (
+              <>
+                <label>
+                  <span>신고 이유</span>
+                  <textarea
+                    value={reason}
+                    maxLength={500}
+                    onChange={(event) => setReason(event.target.value)}
+                  />
+                </label>
+                <Button
+                  tone="danger"
+                  disabled={reason.trim().length < 10}
+                  onClick={() => void submit()}
+                >
+                  신고 기록
+                </Button>
+              </>
+            )}
+          </MotionSwap>
         </div>
-      ) : null}
+      </MotionPresence>
     </div>
   );
 }
@@ -1167,7 +1225,7 @@ export function TokenPage() {
   if (query.isLoading) {
     return (
       <div
-        className="page skeleton-card token-page-skeleton"
+        className="page skeleton-card token-page-skeleton motion-reveal"
         role="status"
         aria-label="토큰 데이터 불러오는 중"
       />
@@ -1207,8 +1265,10 @@ export function TokenPage() {
   const explorerAvailable = Boolean(targetChain.blockExplorers?.default.url);
 
   return (
-    <section className="page token-page">
-      <div className="token-header">
+    <section
+      className={`page token-page${isPublicDemo ? " token-page--public-demo" : ""}`}
+    >
+      <div className="token-header motion-reveal motion-reveal--1">
         <div className="token-identity token-identity--large">
           <span className="token-image token-image--large" aria-hidden="true">
             {launch.imageUrl ? (
@@ -1238,29 +1298,82 @@ export function TokenPage() {
             </div>
           </div>
         </div>
-        <div className="token-header__badges">
-          {sourceVerified ? (
-            <Badge status="confirmed">Contract Source Verified</Badge>
-          ) : null}
-          {liquidityLocked ? (
-            <Badge status="confirmed">Liquidity Locked</Badge>
-          ) : null}
-          {allocationDisclosed ? (
-            <Badge status="confirmed">Allocation Disclosed</Badge>
-          ) : null}
+        <div className="token-header__meta">
+          <div className="token-header__badges">
+            {sourceVerified ? (
+              <Badge status="confirmed">Contract Source Verified</Badge>
+            ) : null}
+            {liquidityLocked ? (
+              <Badge status="confirmed">Liquidity Locked</Badge>
+            ) : null}
+            {allocationDisclosed ? (
+              <Badge status="confirmed">Allocation Disclosed</Badge>
+            ) : null}
+          </div>
+          <DataFreshness meta={query.data?.meta ?? null} />
         </div>
-        <DataFreshness meta={query.data?.meta ?? null} />
       </div>
 
-      {query.error ? (
+      <MotionPresence
+        show={Boolean(query.error)}
+        className="token-stale-alert-motion"
+      >
         <div className="inline-alert inline-alert--danger" role="alert">
           최신 토큰 데이터를 갱신하지 못했습니다. 마지막 정상 응답을 유지합니다.
         </div>
-      ) : null}
+      </MotionPresence>
 
       <div className="token-layout">
+        <aside className="token-sidebar token-sidebar--trade">
+          <div className="token-sidebar__sticky motion-reveal motion-reveal--2">
+            {isPublicDemo ? (
+              <div className="glass-panel public-demo-trade">
+                <Badge status="muted">READ ONLY</Badge>
+                <h2>거래는 로컬 검증에서만 실행했습니다</h2>
+                <p>
+                  공개 URL에서는 지갑 연결, 견적, 승인, 매수·매도 요청을 모두
+                  차단합니다. 표시된 값은 기록 시점까지 수집한 로컬 Anvil 인덱서
+                  결과이며 GIWA 시장 데이터가 아닙니다.
+                </p>
+                <div className="metric-strip">
+                  <Metric label="기록된 거래" value={launch.trades.length} />
+                  <Metric
+                    label="기록된 유동성"
+                    value={
+                      launch.actualLiquidityNative == null
+                        ? "—"
+                        : `${formatUnits(BigInt(launch.actualLiquidityNative))} tETH`
+                    }
+                  />
+                </div>
+                <div className="public-demo-trade__caution">
+                  <strong>거래 전 확인</strong>
+                  <p>
+                    Liquidity Locked는 표시된 LP 원금의 인출 제한만 의미합니다.
+                    가격·AMM 운영·창작자 행동을 보증하지 않습니다.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <TradePanel
+                key={`${launch.chainId}:${launch.tokenAddress}`}
+                launch={launch}
+                onReconcile={async () => query.refetch()}
+              />
+            )}
+            {!isPublicDemo ? (
+              <div className="glass-panel caution-card">
+                <strong>거래 전 확인</strong>
+                <p>
+                  Liquidity Locked는 표시된 LP 원금의 인출 제한만 의미합니다.
+                  가격·AMM 운영·창작자 행동을 보증하지 않습니다.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </aside>
         <div className="token-content">
-          <section className="glass-panel chart-card">
+          <section className="glass-panel chart-card motion-reveal motion-reveal--2">
             <div className="section-heading section-heading--compact">
               <div>
                 <span className="eyebrow">ACTUAL TRADES</span>
@@ -1310,7 +1423,7 @@ export function TokenPage() {
             </div>
           </section>
 
-          <section className="glass-panel facts-card">
+          <section className="glass-panel facts-card motion-reveal motion-reveal--3">
             <div className="section-heading section-heading--compact">
               <div>
                 <span className="eyebrow">VERIFIABLE FACTS</span>
@@ -1323,7 +1436,7 @@ export function TokenPage() {
                 <Link to="/about/risk">배지 의미 보기 →</Link>
               </div>
             </div>
-            <div className="risk-grid">
+            <div className="risk-grid motion-stagger">
               {launch.riskFacts.map((fact) => (
                 <article className="risk-fact" key={fact.key}>
                   <div>
@@ -1353,7 +1466,7 @@ export function TokenPage() {
 
           <HolderDistribution launch={launch} />
 
-          <section className="glass-panel vesting-card">
+          <section className="glass-panel vesting-card motion-reveal motion-reveal--5">
             <div className="section-heading section-heading--compact">
               <div>
                 <span className="eyebrow">CREATOR VESTING</span>
@@ -1403,45 +1516,8 @@ export function TokenPage() {
             </div>
           </section>
         </div>
-        <aside className="token-sidebar">
-          <div className="token-sidebar__sticky">
-            {isPublicDemo ? (
-              <div className="glass-panel public-demo-trade">
-                <Badge status="muted">READ ONLY</Badge>
-                <h2>거래는 로컬 검증에서만 실행했습니다</h2>
-                <p>
-                  공개 URL에서는 지갑 연결, 견적, 승인, 매수·매도 요청을 모두
-                  차단합니다. 표시된 값은 기록 시점까지 수집한 로컬 Anvil 인덱서
-                  결과이며 GIWA 시장 데이터가 아닙니다.
-                </p>
-                <div className="metric-strip">
-                  <Metric label="기록된 거래" value={launch.trades.length} />
-                  <Metric
-                    label="기록된 유동성"
-                    value={
-                      launch.actualLiquidityNative == null
-                        ? "—"
-                        : `${formatUnits(BigInt(launch.actualLiquidityNative))} tETH`
-                    }
-                  />
-                </div>
-              </div>
-            ) : (
-              <TradePanel
-                key={`${launch.chainId}:${launch.tokenAddress}`}
-                launch={launch}
-                onReconcile={async () => query.refetch()}
-              />
-            )}
-            <div className="glass-panel caution-card">
-              <strong>거래 전 확인</strong>
-              <p>
-                Liquidity Locked는 표시된 LP 원금의 인출 제한만 의미합니다.
-                가격·AMM 운영·창작자 행동을 보증하지 않습니다.
-              </p>
-            </div>
-          </div>
-          <section className="glass-panel evidence-card">
+        <aside className="token-sidebar token-sidebar--evidence">
+          <section className="glass-panel evidence-card motion-reveal motion-reveal--5">
             <div className="section-heading section-heading--compact">
               <h2>직접 확인할 주소</h2>
               {!explorerAvailable ? (

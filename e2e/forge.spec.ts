@@ -283,16 +283,45 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
   const principal = (await principalResponse.json()) as { result?: string };
   expect(BigInt(principal.result ?? "0x0")).toBe(1n);
 
+  const tokenFocusOrder = await page
+    .locator(
+      ".token-layout a[href], .token-layout button:not([disabled]), .token-layout input:not([disabled])",
+    )
+    .evaluateAll((elements) =>
+      elements.map((element) => element.textContent.trim()),
+    );
+  const buyControlIndex = tokenFocusOrder.findIndex((label) =>
+    label.includes("매수"),
+  );
+  const riskLinkIndex = tokenFocusOrder.findIndex((label) =>
+    label.includes("배지 의미 보기"),
+  );
+  const creatorLinkIndex = tokenFocusOrder.findIndex((label) =>
+    label.includes("창작자 프로필"),
+  );
+  expect(buyControlIndex).toBeGreaterThanOrEqual(0);
+  expect(riskLinkIndex).toBeGreaterThan(buyControlIndex);
+  expect(creatorLinkIndex).toBeGreaterThan(riskLinkIndex);
+
   const buyAmounts = Array.from({ length: 12 }, () => "0.02");
   for (const [index, buyAmount] of buyAmounts.entries()) {
     await selectAnvilAccount(page, index + 1);
     await page.getByTestId("trade-amount").fill(buyAmount);
-    await page.getByTestId("get-quote").click();
-    await expect(page.getByText("예상 수령량")).toBeVisible();
-    await expect(page.getByTestId("execute-trade")).toContainText(
-      "매수 트랜잭션 확인",
-    );
-    await page.getByTestId("execute-trade").click();
+    await page
+      .locator(".trade-action-motion .motion-swap__incoming")
+      .getByTestId("get-quote")
+      .click();
+    await expect(
+      page
+        .locator(".quote-motion .motion-swap__incoming")
+        .getByText("예상 수령량"),
+    ).toBeVisible();
+    const executeTrade = page
+      .locator(".trade-action-motion .motion-swap__incoming")
+      .getByTestId("execute-trade");
+    await expect(executeTrade).toContainText("매수 트랜잭션 확인");
+    await expect(executeTrade).toBeFocused();
+    await executeTrade.click();
     await waitForIndexedTrade(page, tokenAddress, index + 1);
     await expect(
       page.locator(".transaction-state[data-status='confirmed']"),
@@ -300,13 +329,17 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
   }
 
   await selectAnvilAccount(page, 1);
-  await page.getByRole("tab", { name: "매도" }).click();
+  await page.getByRole("button", { name: "매도", exact: true }).click();
   await page.getByTestId("trade-amount").fill("1000");
-  await page.getByTestId("get-quote").click();
-  await expect(page.getByTestId("execute-trade")).toContainText(
-    /정확히 1,000 FE2E 승인 후 매도/,
-  );
-  await page.getByTestId("execute-trade").click();
+  await page
+    .locator(".trade-action-motion .motion-swap__incoming")
+    .getByTestId("get-quote")
+    .click();
+  const executeSell = page
+    .locator(".trade-action-motion .motion-swap__incoming")
+    .getByTestId("execute-trade");
+  await expect(executeSell).toContainText(/정확히 1,000 FE2E 승인 후 매도/);
+  await executeSell.click();
   await waitForIndexedTrade(page, tokenAddress, 13);
   await expect(
     page.locator(".transaction-state[data-status='confirmed']"),

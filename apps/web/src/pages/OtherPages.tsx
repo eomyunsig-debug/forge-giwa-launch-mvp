@@ -14,6 +14,7 @@ import { Link, useParams } from "react-router";
 import { fetchCreator, fetchPortfolio } from "../api";
 import { DataFreshness, LaunchCard } from "../components";
 import { targetChain } from "../config";
+import { MotionPresence } from "../motion";
 import { publicDemoLaunch } from "../publicDemoSnapshot";
 import { useWallet } from "../wallet";
 
@@ -30,7 +31,10 @@ function IndexerLoadError({
   onRetry: () => void;
 }) {
   return (
-    <section className="page empty-state data-error-state" role="alert">
+    <section
+      className="page empty-state data-error-state motion-reveal"
+      role="alert"
+    >
       <Badge status="caution">인덱서 연결 오류</Badge>
       <h1>{title}</h1>
       <p>
@@ -52,7 +56,7 @@ export function PublicDemoActionPage({
 }) {
   const creating = action === "create";
   return (
-    <section className="page empty-state public-demo-action">
+    <section className="page empty-state public-demo-action motion-reveal">
       <span aria-hidden="true">{creating ? "＋" : "◫"}</span>
       <Badge status="muted">공개 읽기 전용 데모</Badge>
       <h1>
@@ -126,7 +130,7 @@ export function CreatorPage() {
   const creator = query.data.data;
   return (
     <section className="page creator-page">
-      <header className="profile-header glass-panel">
+      <header className="profile-header glass-panel motion-reveal motion-reveal--1">
         <div className="profile-avatar" aria-hidden="true">
           {creator.address.slice(2, 4).toUpperCase()}
         </div>
@@ -141,14 +145,14 @@ export function CreatorPage() {
         <DataFreshness meta={query.data.meta} />
       </header>
 
-      {query.isError ? (
+      <MotionPresence show={query.isError} className="creator-alert-motion">
         <div className="inline-alert inline-alert--danger" role="alert">
           최신 창작자 데이터를 갱신하지 못했습니다. 마지막 정상 응답을
           유지합니다.
         </div>
-      ) : null}
+      </MotionPresence>
 
-      <div className="metric-strip profile-metrics">
+      <div className="metric-strip profile-metrics motion-reveal motion-reveal--2">
         <Metric label="과거 launch" value={creator.launches.length} />
         <Metric
           label="현재 유동성 유지"
@@ -164,7 +168,7 @@ export function CreatorPage() {
         </div>
       </div>
       {creator.launches.length ? (
-        <div className="launch-grid">
+        <div className="launch-grid motion-stagger">
           {creator.launches.map((launch) => (
             <LaunchCard key={launch.tokenAddress} launch={launch} />
           ))}
@@ -266,7 +270,7 @@ export function PortfolioPage() {
 
   return (
     <section className="page portfolio-page">
-      <header className="page-header">
+      <header className="page-header motion-reveal motion-reveal--1">
         <span className="eyebrow">PORTFOLIO</span>
         <h1>내 테스트넷 자산</h1>
         <p>
@@ -275,14 +279,14 @@ export function PortfolioPage() {
         </p>
       </header>
       <DataFreshness meta={query.data.meta} />
-      {query.isError ? (
+      <MotionPresence show={query.isError} className="portfolio-alert-motion">
         <div className="inline-alert inline-alert--danger" role="alert">
           최신 포트폴리오 갱신에 실패했습니다. 아래에는 마지막 정상 응답을
           표시합니다.
         </div>
-      ) : null}
+      </MotionPresence>
       {portfolio.holdings.length ? (
-        <div className="portfolio-list">
+        <div className="portfolio-list motion-stagger">
           {portfolio.holdings.map((holding) => (
             <article
               className="glass-panel portfolio-row"
@@ -334,7 +338,7 @@ export function PortfolioPage() {
         </div>
       </div>
       {portfolio.claimableVestings.length ? (
-        <div className="portfolio-list">
+        <div className="portfolio-list motion-stagger">
           {portfolio.claimableVestings.map((item) => (
             <article
               className="glass-panel portfolio-row"
@@ -359,7 +363,14 @@ export function PortfolioPage() {
       ) : (
         <p>현재 claim 가능한 스케줄이 없습니다.</p>
       )}
-      {claimMessage ? <div className="inline-alert">{claimMessage}</div> : null}
+      <MotionPresence
+        show={Boolean(claimMessage)}
+        className="claim-message-motion"
+      >
+        {claimMessage ? (
+          <div className="inline-alert">{claimMessage}</div>
+        ) : null}
+      </MotionPresence>
 
       <div className="section-heading">
         <div>
@@ -368,7 +379,7 @@ export function PortfolioPage() {
         </div>
       </div>
       {portfolio.recentTransactions.length ? (
-        <ul className="transaction-list">
+        <ul className="transaction-list motion-stagger">
           {portfolio.recentTransactions.map((hash) => (
             <li key={hash}>
               <code>{hash}</code>
@@ -415,10 +426,25 @@ const guaranteeRows = [
   },
 ];
 
+const guaranteeGroups = [
+  {
+    eyebrow: "CONTRACT ENFORCED",
+    title: "컨트랙트가 강제하는 것",
+    description: "관리자나 창작자가 나중에 되돌릴 수 없는 템플릿 규칙입니다.",
+    rows: guaranteeRows.slice(0, 3),
+  },
+  {
+    eyebrow: "LIMITS & UNSUPPORTED",
+    title: "보장하지 않거나 지원하지 않는 것",
+    description: "온체인 사실과 신뢰·수익 보장을 명확히 분리합니다.",
+    rows: guaranteeRows.slice(3),
+  },
+] as const;
+
 export function RiskPage() {
   return (
     <section className="page risk-page">
-      <header className="page-header">
+      <header className="page-header motion-reveal motion-reveal--1">
         <span className="eyebrow">RISK, WITHOUT THE SCORE</span>
         <h1>점수 대신 사실을 보여줍니다</h1>
         <p>
@@ -427,16 +453,30 @@ export function RiskPage() {
         </p>
       </header>
 
-      <div className="risk-principles">
-        {guaranteeRows.map((row) => (
-          <article className="glass-panel" key={row.title}>
-            <Badge status={row.tone}>{row.title}</Badge>
-            <p>{row.body}</p>
-          </article>
+      <div className="risk-principle-groups">
+        {guaranteeGroups.map((group, index) => (
+          <section
+            className={`risk-principle-group glass-panel motion-reveal motion-reveal--${index + 2}`}
+            key={group.title}
+          >
+            <header>
+              <span className="eyebrow">{group.eyebrow}</span>
+              <h2>{group.title}</h2>
+              <p>{group.description}</p>
+            </header>
+            <div className="risk-principles motion-stagger">
+              {group.rows.map((row) => (
+                <article key={row.title}>
+                  <Badge status={row.tone}>{row.title}</Badge>
+                  <p>{row.body}</p>
+                </article>
+              ))}
+            </div>
+          </section>
         ))}
       </div>
 
-      <section className="document-section">
+      <section className="document-section motion-reveal motion-reveal--4">
         <h2>배지의 정확한 의미</h2>
         <dl>
           <div>
@@ -472,7 +512,7 @@ export function RiskPage() {
         </dl>
       </section>
 
-      <section className="document-section">
+      <section className="document-section motion-reveal motion-reveal--5">
         <h2>관리자 권한</h2>
         <ul>
           <li>향후 launch의 bounded 생성 수수료 변경</li>
@@ -486,7 +526,7 @@ export function RiskPage() {
         </p>
       </section>
 
-      <section className="document-section warning-section">
+      <section className="document-section warning-section motion-reveal motion-reveal--5">
         <h2>테스트넷 상태</h2>
         <p>
           이 서비스는 테스트넷용이며 실제 자산 거래를 지원하지 않습니다.
@@ -504,7 +544,7 @@ export function RiskPage() {
 
 export function NotFoundPage() {
   return (
-    <section className="page empty-state">
+    <section className="page empty-state motion-reveal">
       <h1>페이지를 찾지 못했습니다</h1>
       <Link to="/">런치 피드로 돌아가기</Link>
     </section>

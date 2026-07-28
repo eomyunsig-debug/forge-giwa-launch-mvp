@@ -7,6 +7,7 @@ import { Link } from "react-router";
 import { fetchLaunches } from "../api";
 import { AsyncBoundary, DataFreshness, LaunchCard } from "../components";
 import { appBrand, isLocalFixture, isPublicDemo } from "../config";
+import { MotionSwap } from "../motion";
 import { publicDemoLaunch } from "../publicDemoSnapshot";
 
 const feedFilters = [
@@ -52,7 +53,7 @@ export function HomePage() {
     <>
       <section className="hero">
         <div className="hero__glow" aria-hidden="true" />
-        <div className="hero__copy">
+        <div className="hero__copy motion-reveal motion-reveal--1">
           <Badge status={isPublicDemo ? "muted" : "confirmed"}>
             {isPublicDemo
               ? "실제 로컬 실행 기록"
@@ -83,7 +84,7 @@ export function HomePage() {
             </Link>
           </div>
         </div>
-        <aside className="hero__facts glass-panel">
+        <aside className="hero__facts glass-panel motion-reveal motion-reveal--2">
           <div>
             <span className="fact-icon fact-icon--mint" aria-hidden="true">
               ∅
@@ -108,7 +109,7 @@ export function HomePage() {
         </aside>
       </section>
 
-      <section className="feed-section">
+      <section className="feed-section motion-reveal motion-reveal--3">
         <div className="section-heading">
           <div>
             <span className="eyebrow">
@@ -121,85 +122,92 @@ export function HomePage() {
           <DataFreshness meta={query.data?.meta ?? null} />
         </div>
 
-        <label className="search-field">
-          <span aria-hidden="true">⌕</span>
-          <span className="visually-hidden">이름, 심볼 또는 주소 검색</span>
-          <input
-            type="search"
-            placeholder="이름, 심볼, 컨트랙트 주소 검색"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-        </label>
+        <div className="feed-controls">
+          <label className="search-field">
+            <span aria-hidden="true">⌕</span>
+            <span className="visually-hidden">이름, 심볼 또는 주소 검색</span>
+            <input
+              type="search"
+              placeholder="이름, 심볼, 컨트랙트 주소 검색"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
 
-        <div className="filter-row" role="group" aria-label="런치 피드 필터">
-          {feedFilters.map((label) => (
-            <button
-              type="button"
-              key={label}
-              className={filter === label ? "active" : ""}
-              aria-pressed={filter === label}
-              onClick={() => setFilter(label)}
-            >
-              {label}
-            </button>
-          ))}
+          <div className="filter-row" role="group" aria-label="런치 피드 필터">
+            {feedFilters.map((label) => (
+              <button
+                type="button"
+                key={label}
+                className={filter === label ? "active" : ""}
+                aria-pressed={filter === label}
+                onClick={() => setFilter(label)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <AsyncBoundary loading={query.isLoading} error={query.error}>
-          {filtered.length ? (
-            <>
-              <div className="launch-grid">
-                {filtered.slice(0, visibleLimit).map((launch) => (
-                  <LaunchCard
-                    launch={launch}
-                    key={`${launch.chainId}:${launch.tokenAddress}`}
-                  />
-                ))}
-              </div>
-              {visibleLimit < filtered.length ? (
-                <div className="feed-pagination">
-                  <Button
-                    tone="neutral"
-                    onClick={() =>
-                      setVisibleLimit((current) =>
-                        Math.min(current + 12, filtered.length),
-                      )
-                    }
-                  >
-                    다음 12개 보기
-                  </Button>
-                  <span>
-                    {Math.min(visibleLimit, filtered.length)} /{" "}
-                    {filtered.length}
-                  </span>
+          <MotionSwap
+            motionKey={`${deferredSearch}:${filter}`}
+            className="feed-results-motion"
+          >
+            {filtered.length ? (
+              <>
+                <div className="launch-grid motion-stagger">
+                  {filtered.slice(0, visibleLimit).map((launch) => (
+                    <LaunchCard
+                      launch={launch}
+                      key={`${launch.chainId}:${launch.tokenAddress}`}
+                    />
+                  ))}
                 </div>
-              ) : null}
-            </>
-          ) : (
-            <div className="empty-state" data-testid="empty-launches">
-              <span aria-hidden="true">◇</span>
-              <h2>
-                {search || filter !== "신규 런치"
-                  ? "조건에 맞는 온체인 런치가 없습니다"
-                  : "아직 인덱싱된 런치가 없습니다"}
-              </h2>
-              <p>
-                숫자를 만들어 채우지 않습니다.{" "}
-                {isPublicDemo
-                  ? "검색 조건을 바꾸어 기록된 런치를 확인하세요."
-                  : "첫 테스트 런치를 시작해 보세요."}
-              </p>
-              {!isPublicDemo ? (
-                <Link
-                  className="forge-button forge-button--primary"
-                  to="/create"
-                >
-                  첫 런치 만들기
-                </Link>
-              ) : null}
-            </div>
-          )}
+                {visibleLimit < filtered.length ? (
+                  <div className="feed-pagination">
+                    <Button
+                      tone="neutral"
+                      onClick={() =>
+                        setVisibleLimit((current) =>
+                          Math.min(current + 12, filtered.length),
+                        )
+                      }
+                    >
+                      다음 12개 보기
+                    </Button>
+                    <span>
+                      {Math.min(visibleLimit, filtered.length)} /{" "}
+                      {filtered.length}
+                    </span>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="empty-state" data-testid="empty-launches">
+                <span aria-hidden="true">◇</span>
+                <h2>
+                  {search || filter !== "신규 런치"
+                    ? "조건에 맞는 온체인 런치가 없습니다"
+                    : "아직 인덱싱된 런치가 없습니다"}
+                </h2>
+                <p>
+                  숫자를 만들어 채우지 않습니다.{" "}
+                  {isPublicDemo
+                    ? "검색 조건을 바꾸어 기록된 런치를 확인하세요."
+                    : "첫 테스트 런치를 시작해 보세요."}
+                </p>
+                {!isPublicDemo ? (
+                  <Link
+                    className="forge-button forge-button--primary"
+                    to="/create"
+                  >
+                    첫 런치 만들기
+                  </Link>
+                ) : null}
+              </div>
+            )}
+          </MotionSwap>
         </AsyncBoundary>
       </section>
     </>

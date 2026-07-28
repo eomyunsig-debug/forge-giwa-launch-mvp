@@ -11,10 +11,20 @@ import {
 import { Link, NavLink } from "react-router";
 
 import { appBrand, isLocalFixture, isPublicDemo, targetChain } from "./config";
+import { MotionPresence, MotionSwap } from "./motion";
 import { useWallet } from "./wallet";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const wallet = useWallet();
+  const walletState = isPublicDemo
+    ? "public-demo"
+    : wallet.account
+      ? wallet.chainId !== targetChain.id
+        ? "wrong-network"
+        : "connected"
+      : wallet.connecting
+        ? "connecting"
+        : "disconnected";
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main">
@@ -37,55 +47,66 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <small>{isPublicDemo ? "PUBLIC DEMO" : "TESTNET"}</small>
         </Link>
         <nav className="desktop-nav" aria-label="주요 메뉴">
-          <NavLink to="/">런치</NavLink>
+          <NavLink to="/" end>
+            런치
+          </NavLink>
           <NavLink to="/create">만들기</NavLink>
           <NavLink to="/portfolio">포트폴리오</NavLink>
           <NavLink to="/about/risk">위험 안내</NavLink>
         </nav>
         <div className="wallet-area">
-          {isPublicDemo ? (
-            <span className="public-demo-chip" role="status">
-              읽기 전용
-            </span>
-          ) : wallet.account ? (
-            <>
-              {wallet.chainId !== targetChain.id ? (
-                <Button
-                  tone="danger"
-                  onClick={() => void wallet.switchToTargetChain()}
+          <MotionSwap motionKey={walletState} className="wallet-motion">
+            {isPublicDemo ? (
+              <span className="public-demo-chip" role="status">
+                읽기 전용
+              </span>
+            ) : wallet.account ? (
+              <div className="wallet-controls">
+                {wallet.chainId !== targetChain.id ? (
+                  <Button
+                    tone="danger"
+                    onClick={() => void wallet.switchToTargetChain()}
+                  >
+                    네트워크 전환
+                  </Button>
+                ) : null}
+                <button
+                  className="account-chip"
+                  onClick={wallet.disconnect}
+                  aria-label="지갑 연결 해제"
                 >
-                  네트워크 전환
-                </Button>
-              ) : null}
-              <button
-                className="account-chip"
-                onClick={wallet.disconnect}
-                aria-label="지갑 연결 해제"
+                  <span className="account-dot" aria-hidden="true" />
+                  {shortenAddress(wallet.account)}
+                </button>
+              </div>
+            ) : (
+              <Button
+                tone="neutral"
+                busy={wallet.connecting}
+                onClick={() => void wallet.connect()}
+                data-testid="connect-wallet"
               >
-                <span className="account-dot" aria-hidden="true" />
-                {shortenAddress(wallet.account)}
-              </button>
-            </>
-          ) : (
-            <Button
-              tone="neutral"
-              busy={wallet.connecting}
-              onClick={() => void wallet.connect()}
-              data-testid="connect-wallet"
-            >
-              지갑 연결
-            </Button>
-          )}
+                지갑 연결
+              </Button>
+            )}
+          </MotionSwap>
         </div>
       </header>
-      {!isPublicDemo && wallet.error ? (
-        <div className="inline-alert inline-alert--danger" role="alert">
-          {wallet.error}
-        </div>
-      ) : null}
-      <main id="main">{children}</main>
+      <MotionPresence
+        show={!isPublicDemo && Boolean(wallet.error)}
+        className="shell-alert-motion"
+      >
+        {wallet.error ? (
+          <div className="inline-alert inline-alert--danger" role="alert">
+            {wallet.error}
+          </div>
+        ) : null}
+      </MotionPresence>
+      <main id="main" tabIndex={-1}>
+        {children}
+      </main>
       <nav className="mobile-nav" aria-label="모바일 메뉴">
-        <NavLink to="/">
+        <NavLink to="/" end>
           <span aria-hidden="true">⌁</span>
           런치
         </NavLink>
@@ -374,15 +395,16 @@ export function PriceChart({
       </div>
     );
   }
-  const points = relativePrices
-    .map((price, index) => {
-      const x =
-        relativePrices.length === 1
-          ? 0
-          : (index * 1000) / (relativePrices.length - 1);
-      const y = 280 - price * 240;
-      return `${x.toFixed(2)},${y.toFixed(4)}`;
-    })
+  const chartPoints = relativePrices.map((price, index) => {
+    const x =
+      relativePrices.length === 1
+        ? 0
+        : (index * 1000) / (relativePrices.length - 1);
+    const y = 280 - price * 240;
+    return { x, y };
+  });
+  const points = chartPoints
+    .map(({ x, y }) => `${x.toFixed(2)},${y.toFixed(4)}`)
     .join(" ");
   return (
     <figure className="price-chart">
@@ -421,8 +443,23 @@ export function PriceChart({
         <polyline
           points={points}
           fill="none"
+          pathLength="1"
           vectorEffect="non-scaling-stroke"
         />
+        <g className="price-chart__points" aria-hidden="true">
+          {chartPoints.map(({ x, y }, index) => (
+            <circle
+              cx={x}
+              cy={y}
+              r="4.5"
+              vectorEffect="non-scaling-stroke"
+              style={{
+                animationDelay: `${220 + Math.min(index, 8) * 24}ms`,
+              }}
+              key={`${x}:${y}:${index}`}
+            />
+          ))}
+        </g>
       </svg>
       <figcaption>
         <span>실제 인덱싱 체결 기준 · 보간 또는 모의 데이터 없음</span>
@@ -446,23 +483,24 @@ export function AsyncBoundary({
   error: unknown;
   children: React.ReactNode;
 }) {
-  if (loading) {
-    return (
-      <div className="skeleton-grid" aria-label="데이터 불러오는 중">
-        <div className="skeleton-card" />
-        <div className="skeleton-card" />
-        <div className="skeleton-card" />
-      </div>
-    );
-  }
-  if (error) {
-    return (
-      <div className="empty-state" role="alert">
-        <span aria-hidden="true">!</span>
-        <h2>마지막 정상 데이터를 불러오지 못했습니다</h2>
-        <p>인덱서 연결을 확인한 뒤 다시 시도해 주세요.</p>
-      </div>
-    );
-  }
-  return children;
+  const state = loading ? "loading" : error ? "error" : "ready";
+  return (
+    <MotionSwap motionKey={state} className="async-boundary">
+      {loading ? (
+        <div className="skeleton-grid" aria-label="데이터 불러오는 중">
+          <div className="skeleton-card" />
+          <div className="skeleton-card" />
+          <div className="skeleton-card" />
+        </div>
+      ) : error ? (
+        <div className="empty-state" role="alert">
+          <span aria-hidden="true">!</span>
+          <h2>마지막 정상 데이터를 불러오지 못했습니다</h2>
+          <p>인덱서 연결을 확인한 뒤 다시 시도해 주세요.</p>
+        </div>
+      ) : (
+        children
+      )}
+    </MotionSwap>
+  );
 }

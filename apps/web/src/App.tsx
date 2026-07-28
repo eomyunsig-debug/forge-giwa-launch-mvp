@@ -1,8 +1,21 @@
-import { Component, lazy, Suspense, type ReactNode } from "react";
-import { Route, Routes } from "react-router";
+import {
+  Component,
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { Route, Routes, useLocation, type Location } from "react-router";
 
 import { AppShell } from "./components";
 import { isPublicDemo } from "./config";
+import {
+  MOTION_ENTER_MS,
+  MOTION_EXIT_MS,
+  usePrefersReducedMotion,
+} from "./motion";
 
 const HomePage = lazy(async () => {
   const module = await import("./pages/HomePage");
@@ -94,47 +107,109 @@ export class RuntimeErrorBoundary extends Component<
   }
 }
 
+function ForgeRoutes({ location }: { location: Location }) {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="page skeleton-card"
+          role="status"
+          aria-label="페이지 불러오는 중"
+        />
+      }
+    >
+      <Routes location={location}>
+        <Route path="/" element={<HomePage />} />
+        <Route
+          path="/create"
+          element={
+            isPublicDemo ? (
+              <PublicDemoActionPage action="create" />
+            ) : (
+              <CreatePage />
+            )
+          }
+        />
+        <Route path="/token/:chainId/:address" element={<TokenPage />} />
+        <Route path="/creator/:address" element={<CreatorPage />} />
+        <Route
+          path="/portfolio"
+          element={
+            isPublicDemo ? (
+              <PublicDemoActionPage action="portfolio" />
+            ) : (
+              <PortfolioPage />
+            )
+          }
+        />
+        <Route path="/about/risk" element={<RiskPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </Suspense>
+  );
+}
+
+export function RouteMotion() {
+  const location = useLocation();
+  const reducedMotion = usePrefersReducedMotion();
+  const pendingLocation = useRef(location);
+  const initialRender = useRef(true);
+  const [displayLocation, setDisplayLocation] = useState(location);
+  const [state, setState] = useState<"enter" | "entered" | "exit">("enter");
+  pendingLocation.current = location;
+
+  useEffect(() => {
+    if (location.key === displayLocation.key) {
+      setState((current) => (current === "exit" ? "enter" : current));
+      return;
+    }
+    setState("exit");
+    const timer = window.setTimeout(
+      () => {
+        setDisplayLocation(pendingLocation.current);
+        setState("enter");
+      },
+      reducedMotion ? 0 : MOTION_EXIT_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [displayLocation.key, location, reducedMotion]);
+
+  useEffect(() => {
+    if (state !== "enter") return;
+    const timer = window.setTimeout(
+      () => setState("entered"),
+      reducedMotion ? 0 : MOTION_ENTER_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [displayLocation.key, reducedMotion, state]);
+
+  useEffect(() => {
+    if (initialRender.current) {
+      initialRender.current = false;
+      return;
+    }
+    document.getElementById("main")?.focus({ preventScroll: true });
+  }, [displayLocation.key]);
+
+  const exiting = state === "exit";
+  return (
+    <div
+      className="route-stage"
+      data-motion-state={state}
+      data-route={displayLocation.pathname}
+      aria-hidden={exiting ? true : undefined}
+      inert={exiting ? true : undefined}
+    >
+      <ForgeRoutes location={displayLocation} />
+    </div>
+  );
+}
+
 export function App() {
   return (
     <RuntimeErrorBoundary>
       <AppShell>
-        <Suspense
-          fallback={
-            <div
-              className="page skeleton-card"
-              role="status"
-              aria-label="페이지 불러오는 중"
-            />
-          }
-        >
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route
-              path="/create"
-              element={
-                isPublicDemo ? (
-                  <PublicDemoActionPage action="create" />
-                ) : (
-                  <CreatePage />
-                )
-              }
-            />
-            <Route path="/token/:chainId/:address" element={<TokenPage />} />
-            <Route path="/creator/:address" element={<CreatorPage />} />
-            <Route
-              path="/portfolio"
-              element={
-                isPublicDemo ? (
-                  <PublicDemoActionPage action="portfolio" />
-                ) : (
-                  <PortfolioPage />
-                )
-              }
-            />
-            <Route path="/about/risk" element={<RiskPage />} />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
+        <RouteMotion />
       </AppShell>
     </RuntimeErrorBoundary>
   );

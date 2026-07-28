@@ -17,7 +17,11 @@ const anvilConfigPath = join(runtimeDirectory, "anvil-config.json");
 const deploymentPath = join(runtimeDirectory, "deployment.json");
 const rpcUrl = "http://127.0.0.1:8545";
 const indexerUrl = "http://127.0.0.1:8787";
-const webUrl = "http://127.0.0.1:5173";
+const webPort = Number.parseInt(process.env.FORGE_WEB_PORT ?? "5173", 10);
+if (!Number.isInteger(webPort) || webPort < 1 || webPort > 65_535) {
+  throw new Error("FORGE_WEB_PORT must be an integer between 1 and 65535");
+}
+const webUrl = `http://127.0.0.1:${webPort.toString()}`;
 const chainId = 31_337;
 const foundryDirectory = join(root, ".tools", "foundry", "bin");
 const children: Array<{ label: string; process: ChildProcess }> = [];
@@ -391,7 +395,7 @@ async function startApplication(deployment: Deployment): Promise<void> {
     "--host",
     "127.0.0.1",
     "--port",
-    "5173",
+    webPort.toString(),
     "--strictPort",
   ]);
   startManaged("Web", webCommand.executable, webCommand.args, {
