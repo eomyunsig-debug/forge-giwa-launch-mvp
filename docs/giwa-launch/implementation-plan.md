@@ -215,8 +215,8 @@ once a wallet returns a transaction hash, an RPC timeout remains a locked
 lock facts are also withheld until runtime bytecode and principal evidence can
 be verified together.
 
-The final public-demo polish regenerated the snapshot from a seven-trade local
-E2E record, added inverse native/token price labels and chart low/high context,
-kept holder distribution in the token sidebar, removed source-verification
-placeholder facts without a producer, and added an early Node-major guard for
-the unsupported Node 25 SQLite ABI.
+The final public-demo polish regenerated the snapshot from a 13-trade local E2E
+record produced by 12 distinct buyers, added inverse native/token price labels
+and chart low/high context, restored the four-column holder table to the main
+content, removed source-verification placeholder facts without a producer, and
+added early Node-major guards for test, development, and build entry points.
