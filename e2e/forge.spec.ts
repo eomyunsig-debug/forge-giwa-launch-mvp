@@ -330,18 +330,6 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
   await expect(page.getByText(/저점 대비/).first()).toBeVisible();
   await expect(page.getByText(/1 tETH ≈/).first()).toBeVisible();
 
-  if (process.env.FORGE_CAPTURE_PUBLIC_DEMO === "1") {
-    const captureResponse = await page.request.get(
-      `${indexerUrl}/api/v1/launches/31337/${tokenAddress}`,
-    );
-    expect(captureResponse.ok()).toBe(true);
-    await writeFile(
-      resolve("apps/web/src/publicDemoRecord.json"),
-      `${JSON.stringify(await captureResponse.json(), null, 2)}\n`,
-      "utf8",
-    );
-  }
-
   const screenshotDirectory = resolve("artifacts/screenshots");
   await mkdir(screenshotDirectory, { recursive: true });
   await page.setViewportSize({ width: 375, height: 812 });
@@ -374,4 +362,16 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(1440);
+
+  if (process.env.FORGE_CAPTURE_PUBLIC_DEMO === "1") {
+    const captureResponse = await page.request.get(
+      `${indexerUrl}/api/v1/launches/31337/${tokenAddress}`,
+    );
+    expect(captureResponse.ok()).toBe(true);
+    await writeFile(
+      resolve("apps/web/src/publicDemoRecord.json"),
+      `${JSON.stringify(await captureResponse.json(), null, 2)}\n`,
+      "utf8",
+    );
+  }
 });
