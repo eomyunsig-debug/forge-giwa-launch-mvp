@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
@@ -233,17 +233,20 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
   const principal = (await principalResponse.json()) as { result?: string };
   expect(BigInt(principal.result ?? "0x0")).toBe(1n);
 
-  await page.getByTestId("trade-amount").fill("0.05");
-  await page.getByTestId("get-quote").click();
-  await expect(page.getByText("예상 수령량")).toBeVisible();
-  await expect(page.getByTestId("execute-trade")).toContainText(
-    "매수 트랜잭션 확인",
-  );
-  await page.getByTestId("execute-trade").click();
-  await waitForIndexedTrade(page, tokenAddress, 1);
-  await expect(
-    page.locator(".transaction-state[data-status='confirmed']"),
-  ).toContainText("거래 영수증 확인됨");
+  const buyAmounts = ["0.02", "0.03", "0.04", "0.05", "0.06", "0.07"];
+  for (const [index, buyAmount] of buyAmounts.entries()) {
+    await page.getByTestId("trade-amount").fill(buyAmount);
+    await page.getByTestId("get-quote").click();
+    await expect(page.getByText("예상 수령량")).toBeVisible();
+    await expect(page.getByTestId("execute-trade")).toContainText(
+      "매수 트랜잭션 확인",
+    );
+    await page.getByTestId("execute-trade").click();
+    await waitForIndexedTrade(page, tokenAddress, index + 1);
+    await expect(
+      page.locator(".transaction-state[data-status='confirmed']"),
+    ).toContainText("거래 영수증 확인됨");
+  }
 
   await page.getByRole("tab", { name: "매도" }).click();
   await page.getByTestId("trade-amount").fill("1000");
@@ -252,7 +255,7 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
     /정확히 1,000 FE2E 승인 후 매도/,
   );
   await page.getByTestId("execute-trade").click();
-  await waitForIndexedTrade(page, tokenAddress, 2);
+  await waitForIndexedTrade(page, tokenAddress, 7);
   await expect(
     page.locator(".transaction-state[data-status='confirmed']"),
   ).toContainText("거래 영수증 확인됨");
@@ -265,13 +268,28 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
         }
       ).__forgeTransactions?.length ?? 0,
   );
-  expect(transactionCount).toBe(4);
+  // launch + six buys + exact approval + sell
+  expect(transactionCount).toBe(9);
 
   await page.reload();
   await expect(
     page.getByRole("heading", { name: "Forge E2E Friends" }),
   ).toBeVisible();
-  await expect(page.getByText("실제 체결 2건")).toBeVisible();
+  await expect(page.getByText(/실제 체결 7건/)).toBeVisible();
+  await expect(page.getByText(/저점 대비/).first()).toBeVisible();
+  await expect(page.getByText(/1 tETH ≈/).first()).toBeVisible();
+
+  if (process.env.FORGE_CAPTURE_PUBLIC_DEMO === "1") {
+    const captureResponse = await page.request.get(
+      `${indexerUrl}/api/v1/launches/31337/${tokenAddress}`,
+    );
+    expect(captureResponse.ok()).toBe(true);
+    await writeFile(
+      resolve("apps/web/src/publicDemoRecord.json"),
+      `${JSON.stringify(await captureResponse.json(), null, 2)}\n`,
+      "utf8",
+    );
+  }
 
   const screenshotDirectory = resolve("artifacts/screenshots");
   await mkdir(screenshotDirectory, { recursive: true });

@@ -159,7 +159,10 @@ router/pool calls could bypass those policies.
   yet attest their runtime bytecode against an approved build. Code-dependent
   facts such as mint/pause/blacklist/tax/proxy absence and permanent LP
   withdrawal resistance therefore remain `데이터 수집 중` instead of being
-  promoted to confirmed by an event alone.
+  promoted to confirmed by an event alone. The immutable public demo separately
+  labels facts proven during its captured local vertical run as
+  `로컬 실행 시 확인됨`; it does not present them as a current RPC
+  revalidation.
 
 ## Ordered TODO
 
@@ -201,12 +204,19 @@ concentration and balance ordering, quote expiry/signing intent checks,
 post-receipt duplicate-submission guards, real indexer lag status, explicit
 page-level API failures, and unsupported social/LP-lock labels. It also added a
 React error boundary, mobile overflow/contrast/touch-target fixes, metadata
-cards, and strict chain/Node runtime allowlists. Rate limiting remains
-fail-closed as one shared bucket unless a deployment explicitly opts into a
-trusted proxy-rewritten IP header.
+cards, and strict chain/Node runtime allowlists. Rate limiting now keys direct
+traffic by the Node server's TCP peer and accepts a proxy-rewritten IP only
+through an explicit trusted-proxy configuration; an unavailable peer identity
+remains in one fail-closed bucket.
 
 The final security pass additionally made receipt lookup failure fail closed:
 once a wallet returns a transaction hash, an RPC timeout remains a locked
 `confirming` state and tells the user not to resubmit. Static contract and LP
 lock facts are also withheld until runtime bytecode and principal evidence can
 be verified together.
+
+The final public-demo polish regenerated the snapshot from a seven-trade local
+E2E record, added inverse native/token price labels and chart low/high context,
+kept holder distribution in the token sidebar, removed source-verification
+placeholder facts without a producer, and added an early Node-major guard for
+the unsupported Node 25 SQLite ABI.

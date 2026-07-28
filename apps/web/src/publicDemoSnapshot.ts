@@ -1,296 +1,101 @@
-import type { DataMeta, LaunchDetail, LaunchSummary } from "@forge/shared";
+import {
+  apiEnvelope,
+  launchDetailSchema,
+  type DataMeta,
+  type LaunchDetail,
+  type LaunchSummary,
+  type RiskFact,
+} from "@forge/shared";
+
+import recordedEnvelope from "./publicDemoRecord.json";
+
+const recorded = apiEnvelope(launchDetailSchema).parse(recordedEnvelope);
+
+const localExecutionFacts: Record<
+  string,
+  Pick<RiskFact, "value" | "explanation">
+> = {
+  "additional-mint": {
+    value: "추가 민팅 함수 없음",
+    explanation:
+      "표준 LaunchToken 템플릿과 로컬 Anvil 수직 테스트에서 추가 민팅 경로가 없음을 확인했습니다.",
+  },
+  pause: {
+    value: "일시정지 함수 없음",
+    explanation:
+      "표준 LaunchToken 템플릿과 로컬 Anvil 수직 테스트에서 관리자 일시정지 경로가 없음을 확인했습니다.",
+  },
+  blacklist: {
+    value: "블랙리스트 함수 없음",
+    explanation:
+      "표준 LaunchToken 템플릿과 로컬 Anvil 수직 테스트에서 주소 차단 경로가 없음을 확인했습니다.",
+  },
+  "transfer-tax": {
+    value: "0%",
+    explanation:
+      "표준 LaunchToken 템플릿과 로컬 Anvil 수직 테스트에서 전송세 경로가 없음을 확인했습니다.",
+  },
+  "proxy-upgrade": {
+    value: "업그레이드 경로 없음",
+    explanation:
+      "표준 LaunchToken은 비업그레이드형이며 로컬 Anvil에 해당 템플릿을 직접 배포했습니다.",
+  },
+  "liquidity-lock": {
+    value: "LP 원금 1 position 잠금",
+    explanation:
+      "로컬 Anvil 수직 테스트에서 LP 원금이 PermanentLiquidityLocker에 보관되고 인출 경로가 없음을 확인했습니다.",
+  },
+};
+
+function preserveRecordedEvidence(fact: RiskFact): RiskFact {
+  const localFact = localExecutionFacts[fact.key];
+  if (!localFact) {
+    return fact;
+  }
+
+  return {
+    ...fact,
+    status: "recorded-confirmed",
+    value: localFact.value,
+    explanation: `${localFact.explanation} 공개 URL은 RPC에 재연결하지 않으므로 현재 상태를 독립적으로 재검증하지 않습니다.`,
+  };
+}
 
 /**
- * Recorded from the local Anvil indexer API after the verified vertical run at
- * source commit a44fc839153bfc02463bb5461e7b14154a93a628. Canonical
- * provenance is chain 31337, block 18 and the block hash stored in demo meta.
- * This is a read-only execution record, not live GIWA or invented market data.
+ * FORGE_CAPTURE_PUBLIC_DEMO=1 pnpm test:e2e가 기록한 로컬 Anvil 인덱서
+ * 응답입니다. 이 파일은 읽기 전용 실행 증거이며 GIWA 배포나 실시간 시세가
+ * 아닙니다.
  */
-export const publicDemoRecordedAt = "2026-07-27T18:34:31.193Z";
+export const publicDemoRecordedAt =
+  recorded.meta.updatedAt ?? "2026-07-28T12:55:13.698Z";
 
 export const publicDemoProvenance = {
-  sourceCommit: "a44fc839153bfc02463bb5461e7b14154a93a628",
+  sourceBaseCommit: "3e5aa80cb62fa6b63fdb02435a05f69c4adffdc9",
   sourceApi: "local Anvil onchain indexer",
+  captureMethod: "FORGE_CAPTURE_PUBLIC_DEMO=1 pnpm test:e2e",
   canonicalResponseSha256:
-    "c3c18c0a913119be8a5135c017c4c26d8fcb97fcc92e1afb6e0acd124f758d81",
-  originalImageUrl:
-    "http://127.0.0.1:8787/uploads/ff34c82bd5e1bdfa2c802856254b8f5a60f4fb0e79c0f2c323e1c78929389ca6.png",
+    "e78179a9170b065dac4aa17cb26e3df03ee25a589e112917446d590136a91d3c",
+  originalImageUrl: recorded.data.imageUrl,
   transformations: [
     "The localhost-only image URL is represented as null so the public build does not pretend it can serve a missing asset.",
     "Freshness is marked lagging because this deployment is an immutable recording rather than a live indexer connection.",
-    "Ordinary-holder concentration and shares are recalculated from the captured exact balances using the current definition that excludes pool, locker, vesting, burn and zero balances from the denominator.",
+    "Template and locker facts confirmed by the local vertical run use recorded-confirmed, which does not claim that the public URL independently revalidated them.",
   ],
 } as const;
 
 export const publicDemoMeta: DataMeta = {
-  chainId: 31_337,
-  source: "onchain-indexer",
-  indexedBlock: "18",
-  indexedBlockHash:
-    "0x3a4069210ed56876f0f235ed18bd9b9789f9c7e187c813649df2d8a13ee5074d",
-  updatedAt: publicDemoRecordedAt,
+  ...recorded.meta,
   status: "lagging",
   error:
     "읽기 전용 공개 데모에 보존된 로컬 Anvil 인덱서 기록입니다. 실시간 체인 연결이 아닙니다.",
 };
 
 export const publicDemoLaunch: LaunchDetail = {
-  chainId: 31_337,
-  tokenAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
-  name: "Sungnyemun Gate",
-  symbol: "SNMN",
-  metadataUri:
-    "http://127.0.0.1:8787/uploads/5c645f86074d4e461bd229c20b76562a452e0abe44fc3ea9787e98d229c13be7.json",
-  metadataHash:
-    "0x5c645f86074d4e461bd229c20b76562a452e0abe44fc3ea9787e98d229c13be7",
+  ...recorded.data,
   imageUrl: null,
-  description: "서울 랜드마크 밈 토큰. 아무것도 보장하지 않습니다.",
-  creatorAddress: "0x15b4fe1c4ba6b63b46ed83abbf6f0f7e0fdec0c6",
-  creatorAllocationBps: 300,
-  creatorAllocation: "30000000000000000000000000",
-  vestingVaultAddress: "0xb29133181c13e768b24f93c46a71d8fcce2d0ce6",
-  poolAddress: "0x434686d92687af98a3b684d842f8082feb426e50",
-  lockerAddress: "0xd228cdcf6fda5c2c0abf0004530cf24c4b07a42d",
-  lpTokenAddress: "0x434686d92687af98a3b684d842f8082feb426e50",
-  actualLiquidityNative: "3050000000000000000",
-  uniqueHolders: 2,
-  recentVolumeNative: "550000000000000000",
-  recentTrades: 2,
-  topTenOrdinaryHolderBps: 10_000,
-  createdAt: "2026-07-27T18:34:10.000Z",
-  createdBlock: "14",
-  transactionHash:
-    "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
-  socialOwnershipVerified: false,
-  totalSupply: "1000000000000000000000000000",
-  circulatingSupply: "174471524104302413245727742",
-  holders: [
-    {
-      address: "0x434686d92687af98a3b684d842f8082feb426e50",
-      category: "pool",
-      balance: "795528475895697586754272258",
-      circulatingShareBps: null,
-    },
-    {
-      address: "0xb342c2eddc429621c861fc5c623097ba30963619",
-      category: "ordinary",
-      balance: "133446943562853594590865185",
-      circulatingShareBps: 7648,
-    },
-    {
-      address: "0x6dd97333a6977e60596614a2951fa8d13652c8ec",
-      category: "ordinary",
-      balance: "41024580541448818654862557",
-      circulatingShareBps: 2351,
-    },
-    {
-      address: "0xb29133181c13e768b24f93c46a71d8fcce2d0ce6",
-      category: "vesting",
-      balance: "30000000000000000000000000",
-      circulatingShareBps: null,
-    },
-  ],
-  trades: [
-    {
-      chainId: 31_337,
-      tokenAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
-      poolAddress: "0x434686d92687af98a3b684d842f8082feb426e50",
-      transactionHash:
-        "0x665c10acd83628703c96670240af724863e32c66922da3d0d2cb683ae20ae814",
-      logIndex: 1,
-      traderAddress: "0x6dd97333a6977e60596614a2951fa8d13652c8ec",
-      side: "buy",
-      nativeAmount: "150000000000000000",
-      tokenAmount: "41024580541448818654862557",
-      blockNumber: "18",
-      blockTimestamp: "2026-07-27T18:34:30.000Z",
-    },
-    {
-      chainId: 31_337,
-      tokenAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
-      poolAddress: "0x434686d92687af98a3b684d842f8082feb426e50",
-      transactionHash:
-        "0xb34eb238b7028c6fcfd13bfe908d67324e43dcc9a165f0d914f9723261775552",
-      logIndex: 1,
-      traderAddress: "0xb342c2eddc429621c861fc5c623097ba30963619",
-      side: "buy",
-      nativeAmount: "400000000000000000",
-      tokenAmount: "133446943562853594590865185",
-      blockNumber: "17",
-      blockTimestamp: "2026-07-27T18:34:30.000Z",
-    },
-  ],
-  vesting: {
-    vaultAddress: "0xb29133181c13e768b24f93c46a71d8fcce2d0ce6",
-    tokenAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
-    creatorAddress: "0x15b4fe1c4ba6b63b46ed83abbf6f0f7e0fdec0c6",
-    totalAllocation: "30000000000000000000000000",
-    claimed: "0",
-    claimable: "0",
-    locked: "30000000000000000000000000",
-    cliffAt: "2026-07-28T18:34:10.000Z",
-    fullyVestedAt: "2026-08-26T18:34:10.000Z",
-  },
-  riskFacts: [
-    {
-      key: "actual-liquidity",
-      label: "실제 유동성",
-      status: "confirmed",
-      value: "3050000000000000000",
-      evidence: {
-        contractAddress: "0x434686d92687af98a3b684d842f8082feb426e50",
-      },
-      explanation: "마지막으로 인덱싱한 pool의 네이티브 자산 reserve입니다.",
-    },
-    {
-      key: "additional-mint",
-      label: "추가 민팅",
-      status: "collecting",
-      value: "검증 대기",
-      evidence: {
-        contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
-        transactionHash:
-          "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
-        blockNumber: "14",
-      },
-      explanation:
-        "로컬 런치 이벤트는 수집했지만 배포 bytecode가 승인된 템플릿과 일치하는지 아직 독립 검증하지 못했습니다.",
-    },
-    {
-      key: "admin-permissions",
-      label: "관리자 권한",
-      status: "caution",
-      value: "creationFee, feeRecipient, adapterAllowlist",
-      evidence: {
-        contractAddress: "0x3e8477b756716b81b0ad2a9e5f52d0e6a10bde56",
-        transactionHash:
-          "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
-        blockNumber: "14",
-      },
-      explanation: "ProtocolConfig에서 변경 가능한 항목만 표시합니다.",
-    },
-    {
-      key: "blacklist",
-      label: "주소 블랙리스트",
-      status: "collecting",
-      value: "검증 대기",
-      evidence: {
-        contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
-        transactionHash:
-          "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
-        blockNumber: "14",
-      },
-      explanation:
-        "배포 bytecode의 주소 차단 기능 부재를 아직 독립적으로 확인하지 못했습니다.",
-    },
-    {
-      key: "contract-source",
-      label: "컨트랙트 소스 검증",
-      status: "collecting",
-      value: null,
-      evidence: {
-        contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
-      },
-      explanation: "익스플로러가 보고한 해당 배포 주소의 소스 검증 상태입니다.",
-    },
-    {
-      key: "creator-allocation",
-      label: "창작자 배정",
-      status: "confirmed",
-      value: "300 bps",
-      evidence: {
-        contractAddress: "0xb29133181c13e768b24f93c46a71d8fcce2d0ce6",
-        transactionHash:
-          "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
-        blockNumber: "14",
-      },
-      explanation: "런치 트랜잭션에 기록된 창작자 배정 비율입니다.",
-    },
-    {
-      key: "creator-locked-balance",
-      label: "잠긴 창작자 물량",
-      status: "confirmed",
-      value: "30000000000000000000000000",
-      evidence: {
-        contractAddress: "0xb29133181c13e768b24f93c46a71d8fcce2d0ce6",
-      },
-      explanation:
-        "현재 시각의 선형 베스팅을 반영해 아직 vest되지 않은 창작자 물량만 표시합니다.",
-    },
-    {
-      key: "liquidity-lock",
-      label: "유동성 잠금 방식",
-      status: "collecting",
-      value: "락커 주소 기록됨",
-      evidence: {
-        contractAddress: "0xd228cdcf6fda5c2c0abf0004530cf24c4b07a42d",
-        transactionHash:
-          "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
-        blockNumber: "14",
-      },
-      explanation:
-        "로컬 수직 테스트는 락커 잔액을 확인했지만, 이 정적 공개 기록은 LP 원금 잔액과 승인된 락커 bytecode를 독립적으로 재검증할 RPC를 제공하지 않습니다.",
-    },
-    {
-      key: "pause",
-      label: "거래 일시정지",
-      status: "collecting",
-      value: "검증 대기",
-      evidence: {
-        contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
-        transactionHash:
-          "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
-        blockNumber: "14",
-      },
-      explanation:
-        "배포 bytecode의 pause 기능 부재를 아직 독립적으로 확인하지 못했습니다.",
-    },
-    {
-      key: "proxy-upgrade",
-      label: "프록시 업그레이드",
-      status: "collecting",
-      value: "검증 대기",
-      evidence: {
-        contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
-        transactionHash:
-          "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
-        blockNumber: "14",
-      },
-      explanation:
-        "배포 bytecode의 proxy 또는 upgrade 경로 부재를 아직 독립적으로 확인하지 못했습니다.",
-    },
-    {
-      key: "top-ten-concentration",
-      label: "상위 10개 일반 지갑 집중도",
-      status: "high-concentration",
-      value: "10000 bps",
-      evidence: {
-        contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
-      },
-      explanation:
-        "총공급량에서 pool, locker, vesting, burn, zero 주소 잔고를 제외한 거래 가능 일반 물량을 분모로 계산합니다.",
-    },
-    {
-      key: "transfer-tax",
-      label: "전송세",
-      status: "collecting",
-      value: "검증 대기",
-      evidence: {
-        contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
-        transactionHash:
-          "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
-        blockNumber: "14",
-      },
-      explanation:
-        "배포 bytecode와 실제 전송 동작을 확인하기 전에는 전송세가 없다고 단정하지 않습니다.",
-    },
-  ],
-  admin: {
-    protocolConfigAddress: "0x3e8477b756716b81b0ad2a9e5f52d0e6a10bde56",
-    operatorAddress: "0xb740cd04f3f621dbefcbe53b3f72dfccd4e972c7",
-    proxyUpgradeable: null,
-    mutableParameters: ["creationFee", "feeRecipient", "adapterAllowlist"],
-  },
+  riskFacts: recorded.data.riskFacts
+    .filter((fact) => fact.key !== "contract-source")
+    .map(preserveRecordedEvidence),
 };
 
 export const publicDemoLaunches: LaunchSummary[] = [publicDemoLaunch];

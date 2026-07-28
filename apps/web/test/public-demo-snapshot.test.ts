@@ -22,19 +22,22 @@ describe("public demo snapshot", () => {
     expect(publicDemoMeta).toMatchObject({
       chainId: 31_337,
       source: "onchain-indexer",
-      indexedBlock: "18",
+      indexedBlock: "11",
       status: "lagging",
     });
     expect(publicDemoLaunch.description).toBe(
-      "서울 랜드마크 밈 토큰. 아무것도 보장하지 않습니다.",
+      "로컬 Anvil에서 생성·거래·인덱싱 복원을 검증하는 테스트 자산입니다.",
     );
     expect(publicDemoLaunch.imageUrl).toBeNull();
     expect(publicDemoProvenance.originalImageUrl).toContain("127.0.0.1");
     expect(publicDemoProvenance.transformations).toHaveLength(3);
     expect(publicDemoLaunch).toMatchObject({
-      circulatingSupply: "174471524104302413245727742",
+      symbol: "FE2E",
+      recentTrades: 7,
+      circulatingSupply: "201442494989981793660000536",
       topTenOrdinaryHolderBps: 10_000,
     });
+    expect(publicDemoLaunch.trades).toHaveLength(7);
   });
 
   it("never represents the recorded snapshot as a GIWA deployment", () => {
@@ -42,10 +45,7 @@ describe("public demo snapshot", () => {
     expect(publicDemoMeta.error).toContain("실시간 체인 연결이 아닙니다");
     expect(
       publicDemoLaunch.riskFacts.find((fact) => fact.key === "contract-source"),
-    ).toMatchObject({
-      status: "collecting",
-      value: null,
-    });
+    ).toBeUndefined();
     for (const key of [
       "additional-mint",
       "pause",
@@ -56,7 +56,7 @@ describe("public demo snapshot", () => {
     ]) {
       expect(
         publicDemoLaunch.riskFacts.find((fact) => fact.key === key),
-      ).toMatchObject({ status: "collecting" });
+      ).toMatchObject({ status: "recorded-confirmed" });
     }
   });
 });
