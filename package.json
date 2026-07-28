@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "pnpm -r --if-present build",
+    "build:public-demo": "pnpm --filter @forge/web build:public-demo",
     "dev": "concurrently -n indexer,web -c cyan,magenta \"pnpm --filter @forge/indexer dev\" \"pnpm --filter @forge/web dev\"",
     "dev:local": "tsx scripts/local-stack.ts",
     "format": "prettier --write . && pnpm contracts:fmt",

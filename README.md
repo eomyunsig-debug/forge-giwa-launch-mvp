@@ -32,6 +32,23 @@ returns.
 No private-key or seed-phrase input exists. The deployment scripts enforce
 local Anvil `31337` or GIWA Sepolia `91342` and reject mainnet.
 
+## Public read-only demo
+
+The public-hosting build is intentionally read-only. It displays one real
+local Anvil vertical-run record captured from the on-chain indexer at block
+`18` (`0x3a4069210ed56876f0f235ed18bd9b9789f9c7e187c813649df2d8a13ee5074d`)
+on 2026-07-27T18:34:31.193Z. Its canonical JSON SHA-256 is
+`c3c18c0a913119be8a5135c017c4c26d8fcb97fcc92e1afb6e0acd124f758d81`.
+
+This is not a live GIWA deployment. Wallet connection, launch, portfolio, and
+trade mutations are disabled in the public build, and no localhost API is
+called. Missing remote assets remain missing rather than being replaced with
+invented data.
+
+```sh
+pnpm build:public-demo
+```
+
 ## Requirements
 
 - Node.js `>=22.22` (Node 24 is used in CI)

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json && vite build",
+    "build:public-demo": "tsc -p tsconfig.json && VITE_PUBLIC_DEMO=true vite build",
     "dev": "vite --host 127.0.0.1 --port 5173",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "typecheck": "tsc -p tsconfig.json",

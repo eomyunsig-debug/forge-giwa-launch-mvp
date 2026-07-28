@@ -12,6 +12,7 @@ interface ImportMetaEnv {
   readonly VITE_FACTORY_ADDRESS?: string;
   readonly VITE_PROTOCOL_CONFIG_ADDRESS?: string;
   readonly VITE_LOCAL_AMM_ADAPTER_ADDRESS?: string;
+  readonly VITE_PUBLIC_DEMO?: string;
 }
 
 interface ImportMeta {

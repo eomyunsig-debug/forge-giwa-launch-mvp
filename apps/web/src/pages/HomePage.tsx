@@ -6,7 +6,7 @@ import { Link } from "react-router";
 
 import { fetchLaunches } from "../api";
 import { AsyncBoundary, DataFreshness, LaunchCard } from "../components";
-import { appBrand } from "../config";
+import { appBrand, isPublicDemo } from "../config";
 
 const feedFilters = [
   "신규 런치",
@@ -36,7 +36,7 @@ export function HomePage() {
   const query = useQuery({
     queryKey: ["launches", deferredSearch, filter],
     queryFn: () => fetchLaunches(deferredSearch, sortByFilter[filter]),
-    refetchInterval: 8_000,
+    refetchInterval: isPublicDemo ? false : 8_000,
   });
 
   const launches = query.data?.data ?? [];
@@ -56,7 +56,9 @@ export function HomePage() {
       <section className="hero">
         <div className="hero__glow" aria-hidden="true" />
         <div className="hero__copy">
-          <Badge status="confirmed">GIWA 테스트넷 실험</Badge>
+          <Badge status={isPublicDemo ? "muted" : "confirmed"}>
+            {isPublicDemo ? "실제 로컬 실행 기록" : "GIWA 테스트넷 실험"}
+          </Badge>
           <h1>
             빠르게 만들고,
             <br />
@@ -64,9 +66,16 @@ export function HomePage() {
           </h1>
           <p>{appBrand.tagline}</p>
           <div className="hero__actions">
-            <Link className="forge-button forge-button--primary" to="/create">
+            <Link
+              className="forge-button forge-button--primary"
+              to={
+                isPublicDemo
+                  ? `/token/31337/0x8c8519cf76d0427e4d936183b9b10018c11cb3ba`
+                  : "/create"
+              }
+            >
               <span aria-hidden="true">＋</span>
-              토큰 만들기
+              {isPublicDemo ? "검증 기록 보기" : "토큰 만들기"}
             </Link>
             <Link className="text-link" to="/about/risk">
               무엇을 보장하나요? →
@@ -101,8 +110,12 @@ export function HomePage() {
       <section className="feed-section">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">LIVE LAUNCHES</span>
-            <h2>지금 만들어진 자산</h2>
+            <span className="eyebrow">
+              {isPublicDemo ? "RECORDED LAUNCH" : "LIVE LAUNCHES"}
+            </span>
+            <h2>
+              {isPublicDemo ? "로컬 수직 흐름 실행 결과" : "지금 만들어진 자산"}
+            </h2>
           </div>
           <DataFreshness meta={query.data?.meta ?? null} />
         </div>
@@ -171,11 +184,19 @@ export function HomePage() {
                   : "아직 인덱싱된 런치가 없습니다"}
               </h2>
               <p>
-                숫자를 만들어 채우지 않습니다. 첫 테스트 런치를 시작해 보세요.
+                숫자를 만들어 채우지 않습니다.{" "}
+                {isPublicDemo
+                  ? "검색 조건을 바꾸어 기록된 런치를 확인하세요."
+                  : "첫 테스트 런치를 시작해 보세요."}
               </p>
-              <Link className="forge-button forge-button--primary" to="/create">
-                첫 런치 만들기
-              </Link>
+              {!isPublicDemo ? (
+                <Link
+                  className="forge-button forge-button--primary"
+                  to="/create"
+                >
+                  첫 런치 만들기
+                </Link>
+              ) : null}
             </div>
           )}
         </AsyncBoundary>

@@ -21,6 +21,41 @@ const client = createPublicClient({
   transport: http(targetChain.rpcUrls.default.http[0]),
 });
 
+export function PublicDemoActionPage({
+  action,
+}: {
+  action: "create" | "portfolio";
+}) {
+  const creating = action === "create";
+  return (
+    <section className="page empty-state public-demo-action">
+      <span aria-hidden="true">{creating ? "＋" : "◫"}</span>
+      <Badge status="muted">공개 읽기 전용 데모</Badge>
+      <h1>
+        {creating
+          ? "외부 데모에서는 토큰을 생성하지 않습니다"
+          : "외부 데모에서는 지갑을 연결하지 않습니다"}
+      </h1>
+      <p>
+        이 사이트는 2026년 7월 28일 로컬 Anvil 수직 흐름에서 기록한 온체인
+        결과를 검토하기 위한 공개 화면입니다. GIWA 배포나 실시간 거래를 의미하지
+        않습니다.
+      </p>
+      <div className="hero__actions">
+        <Link
+          className="forge-button forge-button--primary"
+          to="/token/31337/0x8c8519cf76d0427e4d936183b9b10018c11cb3ba"
+        >
+          기록된 런치 보기
+        </Link>
+        <Link className="text-link" to="/about/risk">
+          보장 범위 확인 →
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 export function CreatorPage() {
   const address = useParams().address ?? "";
   const query = useQuery({

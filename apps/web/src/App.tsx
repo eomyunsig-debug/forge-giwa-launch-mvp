@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router";
 
 import { AppShell } from "./components";
+import { isPublicDemo } from "./config";
 
 const HomePage = lazy(async () => {
   const module = await import("./pages/HomePage");
@@ -31,6 +32,10 @@ const NotFoundPage = lazy(async () => {
   const module = await import("./pages/OtherPages");
   return { default: module.NotFoundPage };
 });
+const PublicDemoActionPage = lazy(async () => {
+  const module = await import("./pages/OtherPages");
+  return { default: module.PublicDemoActionPage };
+});
 
 export function App() {
   return (
@@ -42,10 +47,28 @@ export function App() {
       >
         <Routes>
           <Route path="/" element={<HomePage />} />
-          <Route path="/create" element={<CreatePage />} />
+          <Route
+            path="/create"
+            element={
+              isPublicDemo ? (
+                <PublicDemoActionPage action="create" />
+              ) : (
+                <CreatePage />
+              )
+            }
+          />
           <Route path="/token/:chainId/:address" element={<TokenPage />} />
           <Route path="/creator/:address" element={<CreatorPage />} />
-          <Route path="/portfolio" element={<PortfolioPage />} />
+          <Route
+            path="/portfolio"
+            element={
+              isPublicDemo ? (
+                <PublicDemoActionPage action="portfolio" />
+              ) : (
+                <PortfolioPage />
+              )
+            }
+          />
           <Route path="/about/risk" element={<RiskPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

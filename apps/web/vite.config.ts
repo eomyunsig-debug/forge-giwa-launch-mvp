@@ -1,4 +1,6 @@
 import react from "@vitejs/plugin-react";
+import { copyFile, mkdir, rm } from "node:fs/promises";
+import { resolve } from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vitest/config";
 
@@ -20,8 +22,54 @@ const developmentSecurityHeaders = {
   ),
 };
 
+const isPublicDemoBuild = process.env.VITE_PUBLIC_DEMO === "true";
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    ...(isPublicDemoBuild
+      ? [
+          {
+            name: "forge-sites-artifacts",
+            apply: "build" as const,
+            transformIndexHtml(html: string) {
+              return html
+                .replace(
+                  "Forge · GIWA 테스트넷 런치 마켓",
+                  "Forge · 읽기 전용 로컬 실행 데모",
+                )
+                .replace(
+                  "Forge — 온체인 사실을 숨기지 않는 GIWA 테스트넷 커뮤니티 런치 마켓",
+                  "Forge — 기록된 로컬 Anvil 실행 결과를 보여주는 읽기 전용 공개 데모",
+                );
+            },
+            async buildStart() {
+              await rm(resolve(import.meta.dirname, "dist"), {
+                recursive: true,
+                force: true,
+              });
+            },
+            async closeBundle() {
+              const outputRoot = resolve(import.meta.dirname, "dist");
+              const serverDirectory = resolve(outputRoot, "server");
+              const metadataDirectory = resolve(outputRoot, ".openai");
+              await rm(serverDirectory, { recursive: true, force: true });
+              await rm(metadataDirectory, { recursive: true, force: true });
+              await mkdir(serverDirectory, { recursive: true });
+              await mkdir(metadataDirectory, { recursive: true });
+              await copyFile(
+                resolve(import.meta.dirname, "worker/index.ts"),
+                resolve(serverDirectory, "index.js"),
+              );
+              await copyFile(
+                resolve(import.meta.dirname, ".openai/hosting.json"),
+                resolve(metadataDirectory, "hosting.json"),
+              );
+            },
+          },
+        ]
+      : []),
+  ],
   resolve: {
     alias: {
       "@forge/shared": fileURLToPath(
@@ -45,6 +93,7 @@ export default defineConfig({
     headers: securityHeaders,
   },
   build: {
+    ...(isPublicDemoBuild ? { outDir: "dist/client" } : {}),
     sourcemap: false,
     target: "es2022",
   },

@@ -217,6 +217,19 @@ code,
   gap: 8px;
 }
 
+.public-demo-chip {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid rgba(194, 255, 74, 0.28);
+  border-radius: 12px;
+  color: var(--lime);
+  background: rgba(194, 255, 74, 0.08);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .account-chip {
   min-height: 44px;
   display: inline-flex;
@@ -228,6 +241,26 @@ code,
   color: var(--text);
   background: var(--surface);
   cursor: pointer;
+}
+
+.public-demo-trade {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.public-demo-trade h2,
+.public-demo-trade p {
+  margin: 0;
+}
+
+.public-demo-trade p {
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.public-demo-action {
+  min-height: 60vh;
 }
 
 .account-dot {

@@ -34,6 +34,8 @@ export const appBrand = {
   tagline: import.meta.env.VITE_APP_TAGLINE ?? brandConfig.tagline,
 };
 
+export const isPublicDemo = import.meta.env.VITE_PUBLIC_DEMO === "true";
+
 export const indexerUrl =
   import.meta.env.VITE_INDEXER_URL ?? "http://127.0.0.1:8787";
 

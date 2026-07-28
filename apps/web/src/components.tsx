@@ -10,7 +10,7 @@ import {
 } from "@forge/shared";
 import { Link, NavLink } from "react-router";
 
-import { appBrand, isLocalFixture, targetChain } from "./config";
+import { appBrand, isLocalFixture, isPublicDemo, targetChain } from "./config";
 import { useWallet } from "./wallet";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -22,9 +22,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </a>
       <div className="testnet-ribbon" role="status">
         <span aria-hidden="true">◆</span>
-        {isLocalFixture
-          ? "로컬 테스트 환경 · 실제 자산 아님"
-          : "GIWA Sepolia 테스트넷 · 실제 자산 아님"}
+        {isPublicDemo
+          ? "공개 읽기 전용 데모 · 기록된 로컬 Anvil 상태 · GIWA 배포 아님"
+          : isLocalFixture
+            ? "로컬 테스트 환경 · 실제 자산 아님"
+            : "GIWA Sepolia 테스트넷 · 실제 자산 아님"}
       </div>
       <header className="site-header">
         <Link className="wordmark" to="/" aria-label={`${appBrand.appName} 홈`}>
@@ -32,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             F
           </span>
           <span>{appBrand.appName}</span>
-          <small>TESTNET</small>
+          <small>{isPublicDemo ? "PUBLIC DEMO" : "TESTNET"}</small>
         </Link>
         <nav className="desktop-nav" aria-label="주요 메뉴">
           <NavLink to="/">런치</NavLink>
@@ -41,7 +43,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <NavLink to="/about/risk">위험 안내</NavLink>
         </nav>
         <div className="wallet-area">
-          {wallet.account ? (
+          {isPublicDemo ? (
+            <span className="public-demo-chip" role="status">
+              읽기 전용
+            </span>
+          ) : wallet.account ? (
             <>
               {wallet.chainId !== targetChain.id ? (
                 <Button
@@ -72,7 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </div>
       </header>
-      {wallet.error ? (
+      {!isPublicDemo && wallet.error ? (
         <div className="inline-alert inline-alert--danger" role="alert">
           {wallet.error}
         </div>
@@ -111,6 +117,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 export function DataFreshness({ meta }: { meta: DataMeta | null }) {
   if (!meta) return <Badge status="collecting">데이터 수집 중</Badge>;
+  if (isPublicDemo) {
+    return (
+      <div className="freshness">
+        <Badge status="muted">기록된 로컬 실행</Badge>
+        <span>
+          블록 {meta.indexedBlock ?? "—"} ·{" "}
+          {meta.updatedAt
+            ? new Date(meta.updatedAt).toLocaleString("ko-KR")
+            : "기록 시각 —"}
+        </span>
+      </div>
+    );
+  }
   const status =
     meta.status === "synced"
       ? "confirmed"

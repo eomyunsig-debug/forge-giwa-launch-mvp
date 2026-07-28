@@ -9,7 +9,12 @@ import {
 } from "@forge/shared";
 import { z } from "zod";
 
-import { indexerUrl } from "./config";
+import { indexerUrl, isPublicDemo } from "./config";
+import {
+  publicDemoLaunch,
+  publicDemoLaunches,
+  publicDemoMeta,
+} from "./publicDemoSnapshot";
 
 const launchesEnvelope = apiEnvelope(z.array(launchSummarySchema));
 const launchEnvelope = apiEnvelope(launchDetailSchema);
@@ -41,6 +46,20 @@ export async function fetchLaunches(
   data: LaunchSummary[];
   meta: DataMeta;
 }> {
+  if (isPublicDemo) {
+    const needle = search.trim().toLowerCase();
+    const data = publicDemoLaunches.filter(
+      (launch) =>
+        !needle ||
+        launch.name.toLowerCase().includes(needle) ||
+        launch.symbol.toLowerCase().includes(needle) ||
+        launch.tokenAddress.toLowerCase().includes(needle),
+    );
+    return {
+      data: sort === "social" ? [] : data,
+      meta: publicDemoMeta,
+    };
+  }
   const query = new URLSearchParams({ sort, limit: "50" });
   if (search) query.set("search", search);
   return requestJson(`/api/v1/launches?${query.toString()}`, launchesEnvelope);
@@ -50,6 +69,15 @@ export async function fetchLaunch(
   chainId: number,
   address: string,
 ): Promise<{ data: LaunchDetail; meta: DataMeta }> {
+  if (isPublicDemo) {
+    if (
+      chainId === publicDemoLaunch.chainId &&
+      address.toLowerCase() === publicDemoLaunch.tokenAddress.toLowerCase()
+    ) {
+      return { data: publicDemoLaunch, meta: publicDemoMeta };
+    }
+    throw new Error("PUBLIC_DEMO_LAUNCH_NOT_FOUND");
+  }
   return requestJson(`/api/v1/launches/${chainId}/${address}`, launchEnvelope);
 }
 
@@ -65,6 +93,25 @@ const creatorEnvelope = z.object({
 });
 
 export async function fetchCreator(address: string) {
+  if (isPublicDemo) {
+    const launches = publicDemoLaunches.filter(
+      (launch) => launch.creatorAddress.toLowerCase() === address.toLowerCase(),
+    );
+    return creatorEnvelope.parse({
+      data: {
+        address,
+        socialOwnershipVerified: false,
+        socialProofStatus: "unverifiable",
+        launches,
+        launchesWithLiquidity: launches.filter(
+          (launch) =>
+            launch.actualLiquidityNative != null &&
+            BigInt(launch.actualLiquidityNative) > 0n,
+        ).length,
+      },
+      meta: publicDemoMeta,
+    });
+  }
   return requestJson(`/api/v1/creators/${address}`, creatorEnvelope);
 }
 
@@ -91,6 +138,17 @@ const portfolioEnvelope = z.object({
 });
 
 export async function fetchPortfolio(chainId: number, address: string) {
+  if (isPublicDemo) {
+    return portfolioEnvelope.parse({
+      data: {
+        address,
+        holdings: [],
+        claimableVestings: [],
+        recentTransactions: [],
+      },
+      meta: publicDemoMeta,
+    });
+  }
   return requestJson(
     `/api/v1/portfolio/${chainId}/${address}`,
     portfolioEnvelope,
@@ -120,6 +178,9 @@ export async function uploadMetadata(input: {
   description: string;
   socialUrl?: string;
 }) {
+  if (isPublicDemo) {
+    throw new Error("PUBLIC_DEMO_READ_ONLY");
+  }
   const imageBody = new FormData();
   imageBody.set("file", input.image);
   const storedImage = await requestJson(

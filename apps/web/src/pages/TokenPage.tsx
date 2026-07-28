@@ -27,7 +27,7 @@ import { Link, useParams } from "react-router";
 
 import { fetchLaunch } from "../api";
 import { DataFreshness, PriceChart } from "../components";
-import { deployment, targetChain } from "../config";
+import { deployment, isPublicDemo, targetChain } from "../config";
 import { useWallet } from "../wallet";
 
 export type TradeStatus =
@@ -609,7 +609,7 @@ export function TokenPage() {
     queryKey: ["launch", chainId, address],
     queryFn: () => fetchLaunch(chainId, address),
     enabled: Number.isInteger(chainId) && /^0x[a-fA-F0-9]{40}$/.test(address),
-    refetchInterval: 8_000,
+    refetchInterval: isPublicDemo ? false : 8_000,
   });
 
   const launch = query.data?.data;
@@ -809,7 +809,7 @@ export function TokenPage() {
                 )}
               />
               <Metric
-                label="현재 인출 가능"
+                label={isPublicDemo ? "기록 시 인출 가능" : "현재 인출 가능"}
                 value={formatUnits(BigInt(launch.vesting.claimable), 18, true)}
               />
               <Metric
@@ -859,15 +859,38 @@ export function TokenPage() {
                 </div>
               ))}
             </div>
-            <ReportToken launch={launch} />
+            {!isPublicDemo ? <ReportToken launch={launch} /> : null}
           </section>
         </div>
         <aside className="token-sidebar">
-          <TradePanel
-            key={`${launch.chainId}:${launch.tokenAddress}`}
-            launch={launch}
-            onReconcile={async () => query.refetch()}
-          />
+          {isPublicDemo ? (
+            <div className="glass-panel public-demo-trade">
+              <Badge status="muted">READ ONLY</Badge>
+              <h2>거래는 로컬 검증에서만 실행했습니다</h2>
+              <p>
+                공개 URL에서는 지갑 연결, 견적, 승인, 매수·매도 요청을 모두
+                차단합니다. 표시된 값은 블록 18까지 수집한 로컬 Anvil 인덱서
+                기록이며 GIWA 시장 데이터가 아닙니다.
+              </p>
+              <div className="metric-strip">
+                <Metric label="기록된 거래" value={launch.trades.length} />
+                <Metric
+                  label="기록된 유동성"
+                  value={
+                    launch.actualLiquidityNative == null
+                      ? "—"
+                      : `${formatUnits(BigInt(launch.actualLiquidityNative))} tETH`
+                  }
+                />
+              </div>
+            </div>
+          ) : (
+            <TradePanel
+              key={`${launch.chainId}:${launch.tokenAddress}`}
+              launch={launch}
+              onReconcile={async () => query.refetch()}
+            />
+          )}
           <div className="glass-panel caution-card">
             <strong>거래 전 확인</strong>
             <p>
