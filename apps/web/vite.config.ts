@@ -1,5 +1,13 @@
 import react from "@vitejs/plugin-react";
-import { copyFile, mkdir, rm } from "node:fs/promises";
+import {
+  copyFile,
+  mkdir,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vitest/config";
@@ -59,15 +67,53 @@ export default defineConfig({
             },
             async closeBundle() {
               const outputRoot = resolve(import.meta.dirname, "dist");
+              const clientDirectory = resolve(outputRoot, "client");
+              const internalAssetDirectory = resolve(
+                clientDirectory,
+                "__forge_static",
+              );
+              const indexPath = resolve(clientDirectory, "index.html");
               const serverDirectory = resolve(outputRoot, "server");
               const metadataDirectory = resolve(outputRoot, ".openai");
+              const indexHtml = await readFile(indexPath, "utf8");
+              const workerSource = await readFile(
+                resolve(import.meta.dirname, "worker/index.js"),
+                "utf8",
+              );
+              const indexPlaceholder =
+                "export const embeddedIndexHtml = optionalString(null);";
+              if (!workerSource.includes(indexPlaceholder)) {
+                throw new Error("Public worker index placeholder is missing");
+              }
+              const builtWorker = workerSource.replace(
+                indexPlaceholder,
+                `const embeddedIndexHtml = ${JSON.stringify(indexHtml)};`,
+              );
+              await rm(internalAssetDirectory, {
+                recursive: true,
+                force: true,
+              });
+              await mkdir(internalAssetDirectory, { recursive: true });
+              for (const entry of await readdir(clientDirectory)) {
+                if (entry === "__forge_static") {
+                  continue;
+                }
+                if (entry === "index.html") {
+                  await rm(resolve(clientDirectory, entry));
+                  continue;
+                }
+                await rename(
+                  resolve(clientDirectory, entry),
+                  resolve(internalAssetDirectory, entry),
+                );
+              }
               await rm(serverDirectory, { recursive: true, force: true });
               await rm(metadataDirectory, { recursive: true, force: true });
               await mkdir(serverDirectory, { recursive: true });
               await mkdir(metadataDirectory, { recursive: true });
-              await copyFile(
-                resolve(import.meta.dirname, "worker/index.js"),
+              await writeFile(
                 resolve(serverDirectory, "index.js"),
+                builtWorker,
               );
               await copyFile(
                 resolve(import.meta.dirname, ".openai/hosting.json"),

@@ -24,7 +24,7 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
 | Secret scan                  | passed across 166 files                                          |
 | Dependency audit             | no known vulnerabilities                                         |
 | Public-demo production build | passed                                                           |
-| Public asset security policy | CSP, nosniff, frame, referrer, and permissions rules packaged    |
+| Public response protections  | CSP, nosniff, frame, referrer, and permissions via worker proxy  |
 | Playwright                   | 1 end-to-end scenario passed in 25.9 seconds                     |
 
 Slither and `git-secrets` were not installed in the execution environment.
@@ -67,7 +67,7 @@ pnpm verify
 pnpm contracts:snapshot
 pnpm contracts:snapshot:check
 pnpm audit --audit-level high
-pnpm build:public-demo
+pnpm verify:public-demo
 pnpm test:e2e
 ```
 
