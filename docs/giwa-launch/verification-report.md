@@ -12,7 +12,7 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
 | Prettier formatting          | passed                                                           |
 | ESLint                       | passed                                                           |
 | TypeScript strict typecheck  | passed across 7 workspace projects and tools                     |
-| Vitest                       | 117 passed, 0 failed across 19 files; web 49, SDK 21, indexer 35 |
+| Vitest                       | 118 passed, 0 failed across 19 files; web 50, SDK 21, indexer 35 |
 | Foundry                      | 54 passed, 0 failed across 13 suites                             |
 | Foundry fuzz                 | 11 properties, 256 cases per property                            |
 | Foundry invariants           | 6 invariants, 128 runs × 32 calls, 0 reverts                     |
@@ -21,9 +21,10 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
 | ABI export                   | 8 contract ABIs and one manifest generated                       |
 | Deployment manifests         | 2 validated; incomplete, zero, wrong-chain probes rejected       |
 | Production build             | passed; source maps disabled                                     |
-| Secret scan                  | passed across 165 files                                          |
+| Secret scan                  | passed across 166 files                                          |
 | Dependency audit             | no known vulnerabilities                                         |
 | Public-demo production build | passed                                                           |
+| Public asset security policy | CSP, nosniff, frame, referrer, and permissions rules packaged    |
 | Playwright                   | 1 end-to-end scenario passed in 25.9 seconds                     |
 
 Slither and `git-secrets` were not installed in the execution environment.
