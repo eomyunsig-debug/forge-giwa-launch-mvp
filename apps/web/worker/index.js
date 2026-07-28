@@ -43,7 +43,10 @@ export default {
       response.status === 404 &&
       !url.pathname.includes(".")
     ) {
-      const fallbackUrl = new URL("/index.html", request.url);
+      // Sites normalizes /index.html to / with a redirect. Fetching the root
+      // asset directly keeps deep-link responses at 200 without forwarding
+      // that redirect to the browser.
+      const fallbackUrl = new URL("/", request.url);
       response = await env.ASSETS.fetch(new Request(fallbackUrl, request));
     }
 
