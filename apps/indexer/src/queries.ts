@@ -144,7 +144,7 @@ export class ApiRepository {
       status:
         chains.length === 0
           ? "starting"
-          : chains.some((chain) => chain.status === "error")
+          : chains.some((chain) => chain.status !== "synced")
             ? "degraded"
             : "ok",
       database: "available",
@@ -192,21 +192,18 @@ export class ApiRepository {
         `SELECT holder_address, category, balance
          FROM holder_balances
          WHERE chain_id = ? AND token_address = ? AND balance != '0'
-         ORDER BY holder_address`,
+         ORDER BY length(balance) DESC, balance DESC, holder_address ASC`,
       )
       .all(chainId, token) as HolderRow[];
-    const circulating = calculateCirculatingSupply(row.total_supply, holders);
+    const tradableSupply = calculateTradableSupply(row.total_supply, holders);
     const holderItems = holders.map((holder) => ({
       address: holder.holder_address,
       category: holder.category,
       balance: holder.balance,
       circulatingShareBps:
-        circulating === 0n ||
-        holder.category === "zero" ||
-        holder.category === "burn" ||
-        holder.category === "vesting"
+        tradableSupply === 0n || holder.category !== "ordinary"
           ? null
-          : clampBps((BigInt(holder.balance) * 10_000n) / circulating),
+          : clampBps((BigInt(holder.balance) * 10_000n) / tradableSupply),
     }));
     const trades = this.database.db
       .prepare(
@@ -254,7 +251,7 @@ export class ApiRepository {
     return {
       ...this.mapLaunchSummary(row),
       totalSupply: row.total_supply,
-      circulatingSupply: circulating.toString(),
+      circulatingSupply: tradableSupply.toString(),
       holders: holderItems,
       trades: trades.map(mapTrade),
       vesting: vestingState,
@@ -273,7 +270,7 @@ export class ApiRepository {
       admin: {
         protocolConfigAddress: admin.protocol_config_address,
         operatorAddress: admin.operator_address,
-        proxyUpgradeable: false,
+        proxyUpgradeable: null,
         mutableParameters: parseStringArray(admin.mutable_parameters_json),
       },
     };
@@ -625,7 +622,7 @@ function mapRisk(row: RiskRow) {
   };
 }
 
-function calculateCirculatingSupply(
+function calculateTradableSupply(
   totalSupply: string,
   holders: readonly HolderRow[],
 ): bigint {
@@ -634,7 +631,9 @@ function calculateCirculatingSupply(
       (holder) =>
         holder.category === "zero" ||
         holder.category === "burn" ||
-        holder.category === "vesting",
+        holder.category === "vesting" ||
+        holder.category === "pool" ||
+        holder.category === "locker",
     )
     .reduce((sum, holder) => sum + BigInt(holder.balance), 0n);
   return BigInt(totalSupply) - excluded;

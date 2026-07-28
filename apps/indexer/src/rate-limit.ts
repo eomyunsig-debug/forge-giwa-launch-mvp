@@ -1,4 +1,5 @@
 import { createMiddleware } from "hono/factory";
+import { isIP } from "node:net";
 
 interface Bucket {
   count: number;
@@ -12,8 +13,21 @@ export interface RateLimitOptions {
   readonly key?: (request: Request) => string;
 }
 
+export type TrustedProxyIpHeader = "cf-connecting-ip" | "x-real-ip";
+
+export function trustedProxyIpKey(
+  header: TrustedProxyIpHeader,
+): (request: Request) => string {
+  return (request) => {
+    const candidate = request.headers.get(header)?.trim();
+    return candidate && isIP(candidate) !== 0
+      ? `ip:${candidate.toLowerCase()}`
+      : "ip:unknown";
+  };
+}
+
 export function rateLimit(options: RateLimitOptions = {}) {
-  const limit = options.limit ?? 120;
+  const limit = options.limit ?? 600;
   const windowMs = options.windowMs ?? 60_000;
   const clock = options.clock ?? Date.now;
   // The MVP has no trusted reverse-proxy boundary. Client-supplied IP or ID

@@ -6,14 +6,13 @@ import { Link } from "react-router";
 
 import { fetchLaunches } from "../api";
 import { AsyncBoundary, DataFreshness, LaunchCard } from "../components";
-import { appBrand, isPublicDemo } from "../config";
+import { appBrand, isLocalFixture, isPublicDemo } from "../config";
 
 const feedFilters = [
   "신규 런치",
   "거래 급증",
   "고유 매수자 증가",
   "유동성 유지 중",
-  "소셜 검증 창작자",
 ] as const;
 
 const sortByFilter = {
@@ -21,7 +20,6 @@ const sortByFilter = {
   "거래 급증": "trending",
   "고유 매수자 증가": "buyers",
   "유동성 유지 중": "liquidity",
-  "소셜 검증 창작자": "social",
 } as const;
 
 export function HomePage() {
@@ -41,15 +39,13 @@ export function HomePage() {
 
   const launches = query.data?.data ?? [];
   const filtered =
-    filter === "소셜 검증 창작자"
-      ? launches.filter((launch) => launch.socialOwnershipVerified)
-      : filter === "유동성 유지 중"
-        ? launches.filter(
-            (launch) =>
-              launch.actualLiquidityNative != null &&
-              BigInt(launch.actualLiquidityNative) > 0n,
-          )
-        : launches;
+    filter === "유동성 유지 중"
+      ? launches.filter(
+          (launch) =>
+            launch.actualLiquidityNative != null &&
+            BigInt(launch.actualLiquidityNative) > 0n,
+        )
+      : launches;
 
   return (
     <>
@@ -57,7 +53,11 @@ export function HomePage() {
         <div className="hero__glow" aria-hidden="true" />
         <div className="hero__copy">
           <Badge status={isPublicDemo ? "muted" : "confirmed"}>
-            {isPublicDemo ? "실제 로컬 실행 기록" : "GIWA 테스트넷 실험"}
+            {isPublicDemo
+              ? "실제 로컬 실행 기록"
+              : isLocalFixture
+                ? "로컬 Anvil 개발 환경"
+                : "GIWA 테스트넷 실험"}
           </Badge>
           <h1>
             빠르게 만들고,

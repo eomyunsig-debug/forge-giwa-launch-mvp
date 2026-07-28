@@ -482,49 +482,49 @@ export class ProjectionEngine {
       [
         "additional-mint",
         "추가 민팅",
-        "confirmed",
-        "불가능",
-        "표준 템플릿에는 생성 이후 민팅 함수가 없습니다.",
+        "collecting",
+        "검증 대기",
+        "런치 이벤트는 수집했지만 배포 bytecode가 승인된 템플릿과 일치하는지 아직 확인하지 못했습니다.",
         event.tokenAddress,
       ],
       [
         "pause",
         "거래 일시정지",
-        "not-applicable",
-        "기능 없음",
-        "토큰에 관리자 pause 기능이 없습니다.",
+        "collecting",
+        "검증 대기",
+        "배포 bytecode의 pause 기능 부재를 아직 독립적으로 확인하지 못했습니다.",
         event.tokenAddress,
       ],
       [
         "blacklist",
         "주소 블랙리스트",
-        "not-applicable",
-        "기능 없음",
-        "토큰에 주소 차단 기능이 없습니다.",
+        "collecting",
+        "검증 대기",
+        "배포 bytecode의 주소 차단 기능 부재를 아직 독립적으로 확인하지 못했습니다.",
         event.tokenAddress,
       ],
       [
         "transfer-tax",
         "전송세",
-        "not-applicable",
-        "0",
-        "표준 토큰은 전송세를 부과하지 않습니다.",
+        "collecting",
+        "검증 대기",
+        "배포 bytecode와 실제 전송 동작을 확인하기 전에는 전송세가 없다고 단정하지 않습니다.",
         event.tokenAddress,
       ],
       [
         "proxy-upgrade",
         "프록시 업그레이드",
-        "confirmed",
-        "불가능",
-        "런치 토큰은 비업그레이드형 템플릿입니다.",
+        "collecting",
+        "검증 대기",
+        "배포 bytecode의 proxy 또는 upgrade 경로 부재를 아직 독립적으로 확인하지 못했습니다.",
         event.tokenAddress,
       ],
       [
         "liquidity-lock",
         "유동성 잠금 방식",
-        "confirmed",
-        "원금 인출 함수 없는 락커",
-        "표시된 LP 원금은 인출 함수가 없는 락커가 보유합니다.",
+        "collecting",
+        "락커 주소 기록됨",
+        "런치 이벤트에 락커 주소는 기록됐지만 LP 원금 잔액과 승인된 락커 bytecode를 아직 함께 확인하지 못했습니다.",
         event.lockerAddress,
       ],
       [
@@ -683,15 +683,18 @@ export class ProjectionEngine {
            WHERE chain_id = ? AND token_address = ? AND balance != '0'`,
         )
         .all(chainId, token.address) as CategoryBalanceRow[];
-      const excludedFromCirculation = rows
+      const excludedFromTradableSupply = rows
         .filter(
           (row) =>
             row.category === "zero" ||
             row.category === "burn" ||
-            row.category === "vesting",
+            row.category === "vesting" ||
+            row.category === "pool" ||
+            row.category === "locker",
         )
         .reduce((sum, row) => sum + BigInt(row.balance), 0n);
-      const circulating = BigInt(token.total_supply) - excludedFromCirculation;
+      const tradableSupply =
+        BigInt(token.total_supply) - excludedFromTradableSupply;
       const topTen = rows
         .filter((row) => row.category === "ordinary")
         .map((row) => BigInt(row.balance))
@@ -699,7 +702,9 @@ export class ProjectionEngine {
         .slice(0, 10)
         .reduce((sum, balance) => sum + balance, 0n);
       const concentrationBps =
-        circulating > 0n ? Number((topTen * 10_000n) / circulating) : null;
+        tradableSupply > 0n
+          ? Number((topTen * 10_000n) / tradableSupply)
+          : null;
       this.upsertRisk(
         chainId,
         token.address,
@@ -711,7 +716,7 @@ export class ProjectionEngine {
             ? "high-concentration"
             : "confirmed",
         concentrationBps == null ? null : `${concentrationBps} bps`,
-        "pool, locker, vesting, burn, zero 주소를 일반 지갑에서 제외하고 유통 공급량을 분모로 계산합니다.",
+        "총공급량에서 pool, locker, vesting, burn, zero 주소 잔고를 제외한 거래 가능 일반 물량을 분모로 계산합니다.",
         token.address,
         null,
         null,

@@ -27,11 +27,15 @@ jobs:
           cache: pnpm
           package-manager-cache: false
       - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.7.1
+      - run: pnpm exec prettier --check .
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm verify:public-demo
       - run: pnpm verify:secrets
       - run: pnpm audit --audit-level high
 

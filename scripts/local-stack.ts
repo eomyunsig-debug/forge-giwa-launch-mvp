@@ -1,5 +1,13 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import {
+  access,
+  chmod,
+  mkdir,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -46,6 +54,16 @@ function pnpmInvocation(args: string[]): {
   return pnpmPath
     ? { executable: process.execPath, args: [pnpmPath, ...args] }
     : { executable: "pnpm", args };
+}
+
+async function foundryExecutable(name: "anvil" | "forge"): Promise<string> {
+  const localExecutable = join(foundryDirectory, name);
+  try {
+    await access(localExecutable, constants.X_OK);
+    return localExecutable;
+  } catch {
+    return name;
+  }
 }
 
 function stopChild(child: ChildProcess, signal: NodeJS.Signals): void {
@@ -240,9 +258,10 @@ async function prepareRuntimeDirectory(): Promise<void> {
 }
 
 async function startAnvil(): Promise<string> {
+  const anvilExecutable = await foundryExecutable("anvil");
   startManaged(
     "Anvil",
-    join(foundryDirectory, "anvil"),
+    anvilExecutable,
     [
       "--host",
       "127.0.0.1",
@@ -286,8 +305,9 @@ async function startAnvil(): Promise<string> {
 }
 
 async function deployContracts(privateKey: string): Promise<Deployment> {
+  const forgeExecutable = await foundryExecutable("forge");
   const output = await capture(
-    join(foundryDirectory, "forge"),
+    forgeExecutable,
     [
       "script",
       "script/DeployLocal.s.sol:DeployLocal",

@@ -54,7 +54,8 @@ pnpm build:public-demo
 
 ## Requirements
 
-- Node.js `>=22.22` (Node 24 is used in CI)
+- Node.js `>=22.22 <25` (Node 24 is used in CI; native SQLite builds are
+  verified on that major)
 - pnpm `11.9.0`
 - macOS or Linux
 - Chromium for Playwright

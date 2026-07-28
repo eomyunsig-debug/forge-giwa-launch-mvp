@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@11.9.0",
   "engines": {
-    "node": ">=22.22.0",
+    "node": ">=22.22.0 <25",
     "pnpm": ">=10"
   },
   "scripts": {
@@ -32,8 +32,9 @@
     "abi:generate": "tsx scripts/export-abis.ts",
     "test:e2e": "playwright test",
     "verify:manifests": "tsx scripts/validate-deployments.ts",
+    "verify:public-demo": "pnpm build:public-demo && tsx scripts/verify-public-demo.ts",
     "verify:secrets": "tsx scripts/secret-scan.ts",
-    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:contracts && pnpm contracts:build && pnpm contracts:build:all && pnpm abi:generate && pnpm verify:manifests && pnpm build && pnpm verify:secrets"
+    "verify": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:contracts && pnpm contracts:build && pnpm contracts:build:all && pnpm abi:generate && pnpm verify:manifests && pnpm build && pnpm verify:public-demo && pnpm verify:secrets"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

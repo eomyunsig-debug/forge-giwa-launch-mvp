@@ -209,7 +209,6 @@ export function LaunchCard({ launch }: { launch: LaunchSummary }) {
           />
         </div>
         <div className="card-facts">
-          <Badge status="confirmed">LP 원금 잠금</Badge>
           <Badge
             status={
               launch.topTenOrdinaryHolderBps != null &&
@@ -218,19 +217,66 @@ export function LaunchCard({ launch }: { launch: LaunchSummary }) {
                 : "muted"
             }
           >
-            상위 지갑 {formatBps(launch.topTenOrdinaryHolderBps)}
+            거래 가능 일반 물량 상위 10{" "}
+            {formatBps(launch.topTenOrdinaryHolderBps)}
           </Badge>
-          {launch.socialOwnershipVerified ? (
-            <Badge status="confirmed">소셜 소유권</Badge>
-          ) : null}
         </div>
       </Link>
     </article>
   );
 }
 
+interface PriceFraction {
+  numerator: bigint;
+  denominator: bigint;
+}
+
+function comparePrice(left: PriceFraction, right: PriceFraction): number {
+  const difference =
+    left.numerator * right.denominator - right.numerator * left.denominator;
+  return difference < 0n ? -1 : difference > 0n ? 1 : 0;
+}
+
+export function relativeTradePrices(trades: Trade[]): number[] {
+  const prices = trades
+    .slice()
+    .reverse()
+    .flatMap((trade): PriceFraction[] => {
+      const denominator = BigInt(trade.tokenAmount);
+      if (denominator <= 0n) return [];
+      return [
+        {
+          numerator: BigInt(trade.nativeAmount),
+          denominator,
+        },
+      ];
+    });
+  if (prices.length === 0) return [];
+
+  const min = prices.reduce((value, price) =>
+    comparePrice(price, value) < 0 ? price : value,
+  );
+  const max = prices.reduce((value, price) =>
+    comparePrice(price, value) > 0 ? price : value,
+  );
+  const rangeNumerator =
+    max.numerator * min.denominator - min.numerator * max.denominator;
+  if (rangeNumerator === 0n) return prices.map(() => 0.5);
+
+  const scale = 1_000_000_000_000n;
+  return prices.map((price) => {
+    const offsetNumerator =
+      (price.numerator * min.denominator - min.numerator * price.denominator) *
+      max.denominator;
+    const offsetDenominator = price.denominator * rangeNumerator;
+    const scaled = (offsetNumerator * scale) / offsetDenominator;
+    return Number(scaled) / Number(scale);
+  });
+}
+
 export function PriceChart({ trades }: { trades: Trade[] }) {
-  if (trades.length < 2) {
+  const relativePrices = relativeTradePrices(trades);
+  if (relativePrices.length < 2) {
     return (
       <div className="chart-empty">
         <span aria-hidden="true">⌁</span>
@@ -239,30 +285,21 @@ export function PriceChart({ trades }: { trades: Trade[] }) {
       </div>
     );
   }
-  const prices = trades
-    .slice()
-    .reverse()
-    .map((trade) => {
-      const token = BigInt(trade.tokenAmount);
-      return token === 0n
-        ? 0n
-        : (BigInt(trade.nativeAmount) * 1_000_000_000n) / token;
-    });
-  const min = prices.reduce((value, price) => (price < value ? price : value));
-  const max = prices.reduce((value, price) => (price > value ? price : value));
-  const range = max - min || 1n;
-  const points = prices
+  const points = relativePrices
     .map((price, index) => {
-      const x = prices.length === 1 ? 0 : (index * 1000) / (prices.length - 1);
-      const y = 280 - Number(((price - min) * 240n) / range);
-      return `${x.toFixed(2)},${y}`;
+      const x =
+        relativePrices.length === 1
+          ? 0
+          : (index * 1000) / (relativePrices.length - 1);
+      const y = 280 - price * 240;
+      return `${x.toFixed(2)},${y.toFixed(4)}`;
     })
     .join(" ");
   return (
     <figure className="price-chart">
       <svg
         role="img"
-        aria-label={`실제 거래 ${prices.length}건으로 계산한 상대 가격 차트`}
+        aria-label={`실제 거래 ${relativePrices.length}건으로 계산한 상대 가격 차트`}
         viewBox="0 0 1000 320"
         preserveAspectRatio="none"
       >

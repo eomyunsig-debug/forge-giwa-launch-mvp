@@ -7,6 +7,7 @@ import { IndexerDatabase } from "./database.js";
 import { IndexerService } from "./indexer.js";
 import { ForgeRpcBlockSource } from "./onchain.js";
 import { IndexerPoller } from "./poller.js";
+import { trustedProxyIpKey } from "./rate-limit.js";
 import { LocalUploadStore } from "./upload.js";
 
 const addressSchema = z.string().regex(/^0x[a-fA-F0-9]{40}$/u);
@@ -41,6 +42,16 @@ const environmentSchema = z.object({
     .min(100)
     .max(60_000)
     .default(1_000),
+  INDEXER_RATE_LIMIT_PER_MINUTE: z.coerce
+    .number()
+    .int()
+    .min(10)
+    .max(10_000)
+    .default(600),
+  INDEXER_TRUSTED_PROXY_IP_HEADER: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.enum(["cf-connecting-ip", "x-real-ip"]).optional(),
+  ),
 });
 
 const environment = environmentSchema.parse(process.env);
@@ -64,6 +75,15 @@ const app = createApi({
   ...(environment.INDEXER_CHAIN_ID
     ? { defaultChainId: environment.INDEXER_CHAIN_ID }
     : {}),
+  rateLimit: {
+    limit: environment.INDEXER_RATE_LIMIT_PER_MINUTE,
+    windowMs: 60_000,
+    ...(environment.INDEXER_TRUSTED_PROXY_IP_HEADER
+      ? {
+          key: trustedProxyIpKey(environment.INDEXER_TRUSTED_PROXY_IP_HEADER),
+        }
+      : {}),
+  },
 });
 
 const server = serve({

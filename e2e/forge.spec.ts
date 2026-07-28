@@ -191,17 +191,47 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
     page.getByRole("heading", { name: "Forge E2E Friends" }),
   ).toBeVisible();
   await expect(page.getByText("위험 사실")).toBeVisible();
-  await expect(
-    page.getByText("Liquidity Locked", { exact: true }),
-  ).toBeVisible();
+  await expect(page.getByText("Liquidity Locked", { exact: true })).toHaveCount(
+    0,
+  );
   await expect(
     page.getByText("Contract Template Verified", { exact: true }),
   ).toHaveCount(0);
+  const liquidityLockFact = page.locator("article.risk-fact").filter({
+    has: page.getByRole("heading", { name: "유동성 잠금 방식" }),
+  });
+  await expect(liquidityLockFact).toContainText("데이터 수집 중");
+  await expect(liquidityLockFact).toContainText("락커 주소 기록됨");
   await expect(page.getByText("LP 락커", { exact: true })).toBeVisible();
   await expect(page.getByText("베스팅 볼트", { exact: true })).toBeVisible();
   await expect(
     page.getByText("실제 유동성", { exact: true }).first(),
   ).toBeVisible();
+
+  const detailResponse = await page.request.get(
+    `${indexerUrl}/api/v1/launches/31337/${tokenAddress}`,
+  );
+  expect(detailResponse.ok()).toBe(true);
+  const detail = (await detailResponse.json()) as {
+    data: { lockerAddress: string };
+  };
+  const principalResponse = await page.request.post(rpcUrl, {
+    data: {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_call",
+      params: [
+        {
+          to: detail.data.lockerAddress,
+          data: "0x8ca020ce",
+        },
+        "latest",
+      ],
+    },
+  });
+  expect(principalResponse.ok()).toBe(true);
+  const principal = (await principalResponse.json()) as { result?: string };
+  expect(BigInt(principal.result ?? "0x0")).toBe(1n);
 
   await page.getByTestId("trade-amount").fill("0.05");
   await page.getByTestId("get-quote").click();

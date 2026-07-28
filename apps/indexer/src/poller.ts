@@ -81,9 +81,17 @@ export class IndexerPoller {
       checkpoint.blockNumber == null
         ? this.options.startBlock
         : BigInt(checkpoint.blockNumber) + 1n;
-    if (next > head) return;
+    if (next > head) {
+      this.indexer.markSynced(this.options.chainId);
+      return;
+    }
     const last = minBigInt(head, next + BigInt(this.maxBlocksPerCycle - 1));
     await this.synchronizer.syncRange(this.options.chainId, next, last);
+    if (last < head) {
+      this.indexer.markLagging(this.options.chainId);
+    } else {
+      this.indexer.markSynced(this.options.chainId);
+    }
   }
 
   private async findFirstChangedBlock(latestKnown: bigint): Promise<bigint> {

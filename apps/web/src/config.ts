@@ -9,7 +9,19 @@ function readAddress(value: string | undefined): Address | null {
   return getAddress(value);
 }
 
-const chainId = Number(import.meta.env.VITE_CHAIN_ID ?? 31_337);
+export type SupportedChainId = 31_337 | 91_342;
+
+export function parseTargetChainId(
+  value: string | undefined,
+): SupportedChainId {
+  const raw = value ?? "31337";
+  if (!/^(?:31337|91342)$/u.test(raw)) {
+    throw new Error("CHAIN_ID_UNSUPPORTED");
+  }
+  return Number(raw) as SupportedChainId;
+}
+
+const chainId = parseTargetChainId(import.meta.env.VITE_CHAIN_ID);
 const isGiwaNetwork = chainId === giwaSepoliaOfficialReference.chainId;
 const rpcUrl = isGiwaNetwork
   ? import.meta.env.VITE_GIWA_RPC_URL

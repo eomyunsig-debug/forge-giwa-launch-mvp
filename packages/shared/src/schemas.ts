@@ -118,7 +118,7 @@ export const launchDetailSchema = launchSummarySchema.extend({
   admin: z.object({
     protocolConfigAddress: addressSchema,
     operatorAddress: addressSchema,
-    proxyUpgradeable: z.literal(false),
+    proxyUpgradeable: z.boolean().nullable(),
     mutableParameters: z.array(z.string()),
   }),
 });

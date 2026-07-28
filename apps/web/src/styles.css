@@ -1,13 +1,15 @@
 :root {
   color-scheme: dark;
   font-family:
-    Inter,
-    Pretendard,
+    system-ui,
     -apple-system,
     BlinkMacSystemFont,
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    "Malgun Gothic",
     "Segoe UI",
     sans-serif;
-  font-synthesis: none;
+  font-synthesis: weight;
   text-rendering: optimizeLegibility;
   --bg: #08090d;
   --surface: #11131a;
@@ -17,7 +19,7 @@
   --line-strong: rgba(255, 255, 255, 0.18);
   --text: #f6f7fb;
   --muted: #979dab;
-  --subtle: #69707f;
+  --subtle: #9097a6;
   --lime: #c8ff35;
   --lime-strong: #aef000;
   --cyan: #55e7f0;
@@ -443,6 +445,9 @@ main {
 
 .forge-external-link,
 .text-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
@@ -478,12 +483,13 @@ main {
 
 .hero {
   position: relative;
-  min-height: 590px;
+  min-height: 480px;
+  overflow: hidden;
   display: grid;
   grid-template-columns: 1.25fr 0.75fr;
   align-items: center;
-  gap: 80px;
-  padding: 80px 0 64px;
+  gap: 56px;
+  padding: 48px 0 32px;
 }
 
 .hero__glow {
@@ -505,9 +511,9 @@ main {
 .hero__copy h1 {
   max-width: 880px;
   margin: 18px 0 20px;
-  font-size: clamp(56px, 7.5vw, 104px);
-  line-height: 0.89;
-  letter-spacing: -0.075em;
+  font-size: clamp(40px, 6vw, 88px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
   word-break: keep-all;
 }
 
@@ -549,7 +555,7 @@ main {
   grid-template-columns: 44px 1fr auto;
   align-items: center;
   gap: 14px;
-  min-height: 98px;
+  min-height: 88px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -585,7 +591,15 @@ main {
 }
 
 .feed-section {
-  padding: 38px 0 110px;
+  padding: 24px 0 110px;
+}
+
+.feed-section > .section-heading {
+  margin-bottom: 18px;
+}
+
+.feed-section .filter-row {
+  margin: 12px 0 18px;
 }
 
 .section-heading {
@@ -615,6 +629,13 @@ main {
 .section-heading a {
   color: var(--muted);
   font-size: 12px;
+}
+
+.section-heading a,
+.portfolio-row > a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
 }
 
 .freshness {
@@ -831,6 +852,43 @@ main {
 .empty-state h1,
 .empty-state h2 {
   color: var(--text);
+}
+
+.runtime-error-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.runtime-error-card {
+  width: min(100%, 640px);
+  padding: clamp(24px, 5vw, 48px);
+}
+
+.runtime-error-card h1 {
+  margin: 12px 0;
+  font-size: clamp(30px, 6vw, 48px);
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+
+.runtime-error-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.runtime-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.data-error-state p {
+  max-width: 560px;
+  line-height: 1.65;
 }
 
 .skeleton-grid {
@@ -1169,10 +1227,17 @@ input[type="range"] {
 
 .address-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   margin-top: 6px;
   color: var(--muted);
+}
+
+.address-copy {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .token-header__badges {
@@ -1259,6 +1324,13 @@ input[type="range"] {
   gap: 18px;
   padding-top: 20px;
   border-top: 1px solid var(--line);
+}
+
+.chart-card .forge-metric__value {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .risk-grid {
@@ -1377,7 +1449,10 @@ input[type="range"] {
 }
 
 .report-widget > button {
-  padding: 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 4px;
   border: 0;
   background: transparent;
   cursor: pointer;
@@ -1814,12 +1889,12 @@ input[type="range"] {
 
   .hero {
     min-height: auto;
-    padding: 56px 0 36px;
+    padding: 44px 0 32px;
   }
 
   .hero__copy h1 {
     margin: 14px 0 18px;
-    font-size: clamp(50px, 15vw, 74px);
+    font-size: clamp(40px, 13vw, 56px);
   }
 
   .hero__copy > p {
@@ -2041,7 +2116,15 @@ input[type="range"] {
   }
 
   .hero__copy h1 {
-    font-size: 48px;
+    font-size: 44px;
+  }
+
+  .runtime-error-actions {
+    flex-direction: column;
+  }
+
+  .runtime-error-actions .forge-button {
+    width: 100%;
   }
 
   .hero__facts > div {

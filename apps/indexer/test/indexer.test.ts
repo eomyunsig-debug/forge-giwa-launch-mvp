@@ -8,7 +8,11 @@ import { IndexerDatabase } from "../src/database.js";
 import { IndexerService } from "../src/indexer.js";
 import { ApiRepository } from "../src/queries.js";
 import { RpcSynchronizer } from "../src/rpc.js";
-import { DEAD_ADDRESS, serializeDecodedEvent } from "../src/types.js";
+import {
+  DEAD_ADDRESS,
+  serializeDecodedEvent,
+  ZERO_ADDRESS,
+} from "../src/types.js";
 import {
   address,
   ALICE,
@@ -20,6 +24,7 @@ import {
   hash,
   launchBlock,
   launchEvent,
+  LOCKER,
   POOL,
   TOKEN,
   transferEvent,
@@ -397,15 +402,17 @@ describe("event-sourced indexer", () => {
     expect(detail.recentVolumeNative).toBe(huge);
   });
 
-  it("excludes pool, vesting and burn buckets from ordinary concentration", () => {
+  it("uses only tradable ordinary supply for holder concentration and shares", () => {
     const { indexer, repository } = setup();
     indexer.ingestBlock(
       launchBlock({
         totalSupply: "1000",
         creatorAllocation: "100",
-        poolAllocation: "600",
+        poolAllocation: "500",
         extraEvents: [
-          transferEvent(FACTORY, DEAD_ADDRESS, "100"),
+          transferEvent(FACTORY, LOCKER, "100"),
+          transferEvent(FACTORY, DEAD_ADDRESS, "50"),
+          transferEvent(FACTORY, ZERO_ADDRESS, "50"),
           transferEvent(FACTORY, ALICE, "200"),
         ],
       }),
@@ -413,21 +420,87 @@ describe("event-sourced indexer", () => {
 
     const detail = repository.getLaunchDetail(CHAIN_ID, TOKEN) as {
       topTenOrdinaryHolderBps: number;
+      circulatingSupply: string;
       uniqueHolders: number;
-      holders: { address: string; category: string }[];
+      holders: {
+        address: string;
+        category: string;
+        circulatingShareBps: number | null;
+      }[];
+      riskFacts: { key: string; explanation: string }[];
     };
-    expect(detail.topTenOrdinaryHolderBps).toBe(2500);
+    expect(detail.circulatingSupply).toBe("200");
+    expect(detail.topTenOrdinaryHolderBps).toBe(10_000);
     expect(detail.uniqueHolders).toBe(1);
     expect(
       Object.fromEntries(
-        detail.holders.map((holder) => [holder.address, holder.category]),
+        detail.holders.map((holder) => [
+          holder.address,
+          {
+            category: holder.category,
+            share: holder.circulatingShareBps,
+          },
+        ]),
       ),
     ).toMatchObject({
-      [POOL]: "pool",
-      [VAULT]: "vesting",
-      [DEAD_ADDRESS]: "burn",
-      [ALICE]: "ordinary",
+      [POOL]: { category: "pool", share: null },
+      [LOCKER]: { category: "locker", share: null },
+      [VAULT]: { category: "vesting", share: null },
+      [DEAD_ADDRESS]: { category: "burn", share: null },
+      [ZERO_ADDRESS]: { category: "zero", share: null },
+      [ALICE]: { category: "ordinary", share: 10_000 },
     });
+    expect(
+      detail.riskFacts.find((fact) => fact.key === "top-ten-concentration")
+        ?.explanation,
+    ).toContain("거래 가능 일반 물량");
+  });
+
+  it("returns holder distribution in exact BigInt balance order", () => {
+    const { indexer, repository } = setup();
+    const smallestAddress = address(13);
+    const mediumAddress = address(14);
+    const largestAddress = address(15);
+    const totalSupply = "1999999999998723638444444222002";
+    const poolAllocation = "1";
+    const creatorAllocation = "1";
+    indexer.ingestBlock(
+      launchBlock({
+        totalSupply,
+        creatorAllocation,
+        poolAllocation,
+        extraEvents: [
+          transferEvent(
+            FACTORY,
+            smallestAddress,
+            "900719925474099312345678901234",
+          ),
+          transferEvent(
+            FACTORY,
+            largestAddress,
+            "900719925474099312345678901235",
+          ),
+          transferEvent(
+            FACTORY,
+            mediumAddress,
+            "198560149050525013753086419531",
+          ),
+        ],
+      }),
+    );
+
+    const detail = repository.getLaunchDetail(CHAIN_ID, TOKEN) as {
+      holders: { address: string; balance: string }[];
+    };
+    expect(
+      detail.holders.map(({ address, balance }) => [address, balance]),
+    ).toEqual([
+      [largestAddress, "900719925474099312345678901235"],
+      [smallestAddress, "900719925474099312345678901234"],
+      [mediumAddress, "198560149050525013753086419531"],
+      [VAULT, "1"],
+      [POOL, "1"],
+    ]);
   });
 
   it("reconciles transfer balances exactly after repeated sends", () => {

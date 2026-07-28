@@ -77,7 +77,11 @@ status rather than replacing data with zeroes.
 
 Holder balances are derived from `Transfer` events as decimal strings. Pool,
 locker, vesting vault, zero, and burn addresses are classified separately.
-Top-holder concentration uses only circulating balances of ordinary wallets.
+Top-holder concentration uses only balances held by ordinary wallets after all
+five special buckets are removed from the denominator. Holder rows are ordered
+with decimal-string BigInt semantics rather than JavaScript `Number`
+conversion. Polling compares each bounded batch with the canonical head and
+reports `lagging` until the checkpoint actually catches up.
 Standard V2 `Swap`/`Sync` and local-fixture events have separate decoders.
 The configured chain selects exactly one decoder (`91342` → V2, `31337` →
 local); unsupported or contradictory combinations fail at startup. Because an
@@ -145,11 +149,17 @@ router/pool calls could bypass those policies.
   automated request returned `403`.
 - Reorg recovery targets the bounded MVP confirmation window, not archival-node
   replacement.
-- Social ownership proofs can verify wallet-to-account control evidence only;
-  they do not establish identity or project trustworthiness.
+- Social ownership verification is not connected in this MVP. A submitted
+  social URL remains unverified metadata, the feed offers no social-verified
+  filter, and the UI marks the capability as unsupported.
 - Token images use a local development adapter until a configured
   IPFS-compatible/object-storage provider is available.
 - Local AMM prices are fixtures and are never presented as GIWA market data.
+- Launch events disclose token and locker addresses, but the indexer does not
+  yet attest their runtime bytecode against an approved build. Code-dependent
+  facts such as mint/pause/blacklist/tax/proxy absence and permanent LP
+  withdrawal resistance therefore remain `데이터 수집 중` instead of being
+  promoted to confirmed by an event alone.
 
 ## Ordered TODO
 
@@ -185,3 +195,18 @@ GIWA finality/event-decoder mismatch, recipient-spoofable buyer counts,
 transient metadata loss and retry-queue starvation, initial AMM event ordering,
 zero-claim portfolio actions, and missing sell-gas checks. The complete
 Playwright vertical flow was rerun after those changes.
+
+A subsequent UI/data-truth review corrected price precision, ordinary-holder
+concentration and balance ordering, quote expiry/signing intent checks,
+post-receipt duplicate-submission guards, real indexer lag status, explicit
+page-level API failures, and unsupported social/LP-lock labels. It also added a
+React error boundary, mobile overflow/contrast/touch-target fixes, metadata
+cards, and strict chain/Node runtime allowlists. Rate limiting remains
+fail-closed as one shared bucket unless a deployment explicitly opts into a
+trusted proxy-rewritten IP header.
+
+The final security pass additionally made receipt lookup failure fail closed:
+once a wallet returns a transaction hash, an RPC timeout remains a locked
+`confirming` state and tells the user not to resubmit. Static contract and LP
+lock facts are also withheld until runtime bytecode and principal evidence can
+be verified together.

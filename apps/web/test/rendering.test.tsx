@@ -36,12 +36,13 @@ describe("honest missing-data rendering", () => {
   it("renders missing metrics as dashes, not fake zeroes or badges", () => {
     render(
       <MemoryRouter>
-        <LaunchCard launch={launch} />
+        <LaunchCard launch={{ ...launch, socialOwnershipVerified: true }} />
       </MemoryRouter>,
     );
     expect(screen.getAllByText(/—/).length).toBeGreaterThan(1);
     expect(screen.queryByText(/Identity Verified/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/소셜 소유권/)).not.toBeInTheDocument();
+    expect(screen.queryByText("LP 원금 잠금")).not.toBeInTheDocument();
   });
 
   it("does not draw a chart from insufficient trades", () => {
@@ -67,5 +68,38 @@ describe("honest missing-data rendering", () => {
     render(<PriceChart trades={trades} />);
     expect(screen.getByRole("img")).toHaveAccessibleName(/실제 거래 2건/);
     expect(screen.getByText(/모의 데이터 없음/)).toBeInTheDocument();
+  });
+
+  it("preserves sub-nano price moves and a final decline in the chart", () => {
+    const prices = [559n, 727n, 953n, 1_310n, 1_720n, 1_920n, 1_810n];
+    const trades: Trade[] = prices
+      .map((nativeAmount, index) => ({
+        chainId: 31_337,
+        tokenAddress: launch.tokenAddress,
+        poolAddress: launch.poolAddress,
+        transactionHash: `0x${String(index + 1).padStart(64, "0")}`,
+        logIndex: index,
+        traderAddress: launch.creatorAddress,
+        side:
+          index === prices.length - 1 ? ("sell" as const) : ("buy" as const),
+        nativeAmount: nativeAmount.toString(),
+        tokenAmount: "1000000000000",
+        blockNumber: String(index + 1),
+        blockTimestamp: new Date(index * 1_000).toISOString(),
+      }))
+      .reverse();
+
+    render(<PriceChart trades={trades} />);
+    const points =
+      screen
+        .getByRole("img")
+        .querySelector("polyline")
+        ?.getAttribute("points") ?? "";
+    const yValues = points
+      .split(" ")
+      .map((point) => Number(point.split(",")[1]));
+
+    expect(new Set(yValues).size).toBe(prices.length);
+    expect(yValues.at(-1)).toBeGreaterThan(yValues.at(-2) ?? Number.NaN);
   });
 });
