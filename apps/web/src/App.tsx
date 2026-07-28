@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { Component, lazy, Suspense, type ReactNode } from "react";
 import { Route, Routes } from "react-router";
 
 import { AppShell } from "./components";
@@ -37,42 +37,105 @@ const PublicDemoActionPage = lazy(async () => {
   return { default: module.PublicDemoActionPage };
 });
 
+interface RuntimeErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface RuntimeErrorBoundaryState {
+  hasError: boolean;
+}
+
+export class RuntimeErrorBoundary extends Component<
+  RuntimeErrorBoundaryProps,
+  RuntimeErrorBoundaryState
+> {
+  override state: RuntimeErrorBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): RuntimeErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  override render() {
+    if (this.state.hasError) {
+      return (
+        <main className="runtime-error-shell">
+          <section
+            className="runtime-error-card glass-panel"
+            role="alert"
+            aria-labelledby="runtime-error-title"
+          >
+            <span className="eyebrow">RECOVERY MODE</span>
+            <h1 id="runtime-error-title">
+              페이지를 안전하게 불러오지 못했습니다
+            </h1>
+            <p>
+              일시적인 네트워크 오류이거나 새 배포로 화면 파일이 바뀌었을 수
+              있습니다. 이 상태에서는 거래나 데이터 로딩이 완료됐다고 판단하지
+              않습니다.
+            </p>
+            <div className="runtime-error-actions">
+              <button
+                type="button"
+                className="forge-button forge-button--primary"
+                onClick={() => window.location.reload()}
+              >
+                페이지 다시 불러오기
+              </button>
+              <a className="forge-button forge-button--neutral" href="/">
+                런치 피드로 이동
+              </a>
+            </div>
+          </section>
+        </main>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 export function App() {
   return (
-    <AppShell>
-      <Suspense
-        fallback={
-          <div className="page skeleton-card" aria-label="페이지 불러오는 중" />
-        }
-      >
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route
-            path="/create"
-            element={
-              isPublicDemo ? (
-                <PublicDemoActionPage action="create" />
-              ) : (
-                <CreatePage />
-              )
-            }
-          />
-          <Route path="/token/:chainId/:address" element={<TokenPage />} />
-          <Route path="/creator/:address" element={<CreatorPage />} />
-          <Route
-            path="/portfolio"
-            element={
-              isPublicDemo ? (
-                <PublicDemoActionPage action="portfolio" />
-              ) : (
-                <PortfolioPage />
-              )
-            }
-          />
-          <Route path="/about/risk" element={<RiskPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </Suspense>
-    </AppShell>
+    <RuntimeErrorBoundary>
+      <AppShell>
+        <Suspense
+          fallback={
+            <div
+              className="page skeleton-card"
+              role="status"
+              aria-label="페이지 불러오는 중"
+            />
+          }
+        >
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route
+              path="/create"
+              element={
+                isPublicDemo ? (
+                  <PublicDemoActionPage action="create" />
+                ) : (
+                  <CreatePage />
+                )
+              }
+            />
+            <Route path="/token/:chainId/:address" element={<TokenPage />} />
+            <Route path="/creator/:address" element={<CreatorPage />} />
+            <Route
+              path="/portfolio"
+              element={
+                isPublicDemo ? (
+                  <PublicDemoActionPage action="portfolio" />
+                ) : (
+                  <PortfolioPage />
+                )
+              }
+            />
+            <Route path="/about/risk" element={<RiskPage />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Suspense>
+      </AppShell>
+    </RuntimeErrorBoundary>
   );
 }

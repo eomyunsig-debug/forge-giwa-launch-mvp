@@ -34,13 +34,21 @@ export default defineConfig({
             apply: "build" as const,
             transformIndexHtml(html: string) {
               return html
-                .replace(
-                  "Forge · GIWA 테스트넷 런치 마켓",
+                .replaceAll(
+                  "Forge · 온체인 위험 공개 런치패드",
                   "Forge · 읽기 전용 로컬 실행 데모",
                 )
                 .replace(
-                  "Forge — 온체인 사실을 숨기지 않는 GIWA 테스트넷 커뮤니티 런치 마켓",
+                  "Forge — 온체인 위험 사실을 보여주는 커뮤니티 토큰 런치패드 프로토타입. GIWA 공식 서비스가 아닙니다.",
                   "Forge — 기록된 로컬 Anvil 실행 결과를 보여주는 읽기 전용 공개 데모",
+                )
+                .replace(
+                  "추가 민팅, 창작자 베스팅, 유동성 잠금 등 검증 가능한 온체인 사실을 분리해 보여주는 테스트넷 프로토타입입니다.",
+                  "실제 로컬 Anvil 수직 흐름에서 기록된 온체인 사실을 보여주는 읽기 전용 공개 데모입니다.",
+                )
+                .replace(
+                  "수익이나 안전을 보증하지 않고 검증 가능한 온체인 위험 사실을 보여주는 테스트넷 프로토타입입니다.",
+                  "실시간 GIWA 배포가 아닌 로컬 Anvil 실행 기록이며 수익이나 안전을 보증하지 않습니다.",
                 );
             },
             async buildStart() {
