@@ -67,14 +67,14 @@ function preserveRecordedEvidence(fact: RiskFact): RiskFact {
  * 아닙니다.
  */
 export const publicDemoRecordedAt =
-  recorded.meta.updatedAt ?? "2026-07-28T17:25:45.501Z";
+  recorded.meta.updatedAt ?? "2026-07-28T17:30:41.963Z";
 
 export const publicDemoProvenance = {
-  sourceBaseCommit: "b8d25f73f0c9c0dd9b43947981fdd26ad70e0135",
+  sourceBaseCommit: "cc578753116c4b21e109cffba8fbe63b68da96c3",
   sourceApi: "local Anvil onchain indexer",
   captureMethod: "FORGE_CAPTURE_PUBLIC_DEMO=1 pnpm test:e2e",
   canonicalResponseSha256:
-    "20b139d5f8672d52f9b0b569c699e02447f674c27d6cd97e2289b4a1c08e244f",
+    "f2ae8f5766cf798a8185b84626ed89de30388f5c4597776c3a5efdfcbbd6da08",
   originalImageUrl: recorded.data.imageUrl,
   transformations: [
     "The localhost-only image URL is represented as null so the public build does not pretend it can serve a missing asset.",

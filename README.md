@@ -39,9 +39,9 @@ or [browse the public source](https://github.com/eomyunsig-debug/forge-giwa-laun
 
 The public-hosting build is intentionally read-only. It displays one real
 local Anvil vertical-run record captured from the on-chain indexer at block
-`17` (`0xc57ba719f9d3ebbcbbe6bd297f56562437cefe40ed7f93fadfef4317de6e46a5`)
-on 2026-07-28T17:25:45.501Z. Its canonical JSON SHA-256 is
-`20b139d5f8672d52f9b0b569c699e02447f674c27d6cd97e2289b4a1c08e244f`.
+`18` (`0x33a6c41e0d8ccacfd5d12d4e909c1e275ab2c7408c1980c24c31982218de37e9`)
+on 2026-07-28T17:30:41.963Z. Its canonical JSON SHA-256 is
+`f2ae8f5766cf798a8185b84626ed89de30388f5c4597776c3a5efdfcbbd6da08`.
 The recorded run includes the launch, buys from 12 distinct accounts, an
 exact-amount approval, one sell, 13 indexed trades, and refresh restoration.
 That distribution records 12 ordinary holders and an 86.10% top-ten ordinary

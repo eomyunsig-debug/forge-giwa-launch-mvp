@@ -4,7 +4,7 @@ import {
   launchSummarySchema,
 } from "@forge/shared";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -25,7 +25,7 @@ describe("public demo snapshot", () => {
     expect(publicDemoMeta).toMatchObject({
       chainId: 31_337,
       source: "onchain-indexer",
-      indexedBlock: "17",
+      indexedBlock: "18",
       status: "lagging",
     });
     expect(publicDemoLaunch.description).toBe(
@@ -47,10 +47,18 @@ describe("public demo snapshot", () => {
         (holder) => holder.category === "ordinary",
       ),
     ).toHaveLength(12);
+    const rootRecordPath = resolve(
+      process.cwd(),
+      "apps/web/src/publicDemoRecord.json",
+    );
     expect(
       createHash("sha256")
         .update(
-          readFileSync(resolve(process.cwd(), "src/publicDemoRecord.json")),
+          readFileSync(
+            existsSync(rootRecordPath)
+              ? rootRecordPath
+              : resolve(process.cwd(), "src/publicDemoRecord.json"),
+          ),
         )
         .digest("hex"),
     ).toBe(publicDemoProvenance.canonicalResponseSha256);
