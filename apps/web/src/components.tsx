@@ -389,7 +389,7 @@ export function PriceChart({
       {summary ? (
         <div className="price-chart__range">
           <span>
-            토큰 저점
+            가장 싸게 체결
             <strong>
               1 {nativeSymbol} ≈{" "}
               {formatInverseTradePrice(
@@ -400,7 +400,7 @@ export function PriceChart({
             </strong>
           </span>
           <span>
-            토큰 고점
+            가장 비싸게 체결
             <strong>
               1 {nativeSymbol} ≈{" "}
               {formatInverseTradePrice(

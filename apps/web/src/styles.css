@@ -1283,25 +1283,18 @@ input[type="range"] {
   gap: 14px;
 }
 
-.token-sidebar .distribution-card {
+.token-sidebar .evidence-card {
   padding: 20px;
 }
 
-.token-sidebar .distribution-card .section-heading {
+.token-sidebar .evidence-card .section-heading {
   align-items: start;
   flex-direction: column;
   gap: 8px;
 }
 
-.token-sidebar .holder-table > div {
-  grid-template-columns: minmax(0, 1fr) 64px;
-}
-
-.token-sidebar .holder-table [role="columnheader"]:nth-child(3),
-.token-sidebar .holder-table [role="columnheader"]:nth-child(4),
-.token-sidebar .holder-table [role="cell"]:nth-child(3),
-.token-sidebar .holder-table [role="cell"]:nth-child(4) {
-  text-align: left;
+.token-sidebar .evidence-links {
+  grid-template-columns: 1fr;
 }
 
 .panel-note {
@@ -1423,6 +1416,10 @@ input[type="range"] {
   border: 1px solid var(--line);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.018);
+}
+
+.risk-fact:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 .risk-fact > div {
@@ -1909,8 +1906,20 @@ input[type="range"] {
     position: static;
   }
 
+  .token-content {
+    grid-row: 2;
+  }
+
   .token-sidebar {
+    display: contents;
+  }
+
+  .token-sidebar__sticky {
     grid-row: 1;
+  }
+
+  .token-sidebar .evidence-card {
+    grid-row: 3;
   }
 
   .profile-header {
@@ -1924,8 +1933,22 @@ input[type="range"] {
 
 @media (min-width: 1051px) {
   .hero {
-    min-height: 390px;
-    padding: 34px 0 18px;
+    min-height: 304px;
+    gap: 36px;
+    padding: 22px 0 10px;
+  }
+
+  .hero__copy h1 {
+    margin: 14px 0 16px;
+    font-size: clamp(52px, 5vw, 72px);
+  }
+
+  .hero__actions {
+    margin-top: 22px;
+  }
+
+  .hero__facts > div {
+    min-height: 72px;
   }
 
   .feed-section {
@@ -2145,6 +2168,10 @@ input[type="range"] {
 
   .risk-grid {
     grid-template-columns: 1fr;
+  }
+
+  .risk-fact:last-child:nth-child(odd) {
+    grid-column: auto;
   }
 
   .risk-fact > div {

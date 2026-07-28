@@ -1296,7 +1296,7 @@ export function TokenPage() {
                 }
               />
               <Metric
-                label="고유 홀더"
+                label="고유 일반 홀더"
                 value={launch.uniqueHolders?.toLocaleString("ko-KR") ?? "—"}
               />
               <Metric
@@ -1351,6 +1351,8 @@ export function TokenPage() {
             </div>
           </section>
 
+          <HolderDistribution launch={launch} />
+
           <section className="glass-panel vesting-card">
             <div className="section-heading section-heading--compact">
               <div>
@@ -1400,36 +1402,6 @@ export function TokenPage() {
               </div>
             </div>
           </section>
-
-          <section className="glass-panel evidence-card">
-            <div className="section-heading section-heading--compact">
-              <h2>직접 확인할 주소</h2>
-              {!explorerAvailable ? (
-                <span>로컬 체인 · 익스플로러 없음</span>
-              ) : null}
-            </div>
-            <div className="evidence-links">
-              {(
-                [
-                  ["토큰", launch.tokenAddress],
-                  ["풀", launch.poolAddress],
-                  ["LP 락커", launch.lockerAddress],
-                  ["베스팅 볼트", launch.vestingVaultAddress],
-                ] as const
-              ).map(([label, value]) => (
-                <div key={label}>
-                  <span>{label}</span>
-                  <code>{shortenAddress(value)}</code>
-                  {explorerAvailable ? (
-                    <ExternalLink href={explorer("address", value)}>
-                      explorer
-                    </ExternalLink>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-            {!isPublicDemo ? <ReportToken launch={launch} /> : null}
-          </section>
         </div>
         <aside className="token-sidebar">
           <div className="token-sidebar__sticky">
@@ -1469,7 +1441,35 @@ export function TokenPage() {
               </p>
             </div>
           </div>
-          <HolderDistribution launch={launch} />
+          <section className="glass-panel evidence-card">
+            <div className="section-heading section-heading--compact">
+              <h2>직접 확인할 주소</h2>
+              {!explorerAvailable ? (
+                <span>로컬 체인 · 익스플로러 없음</span>
+              ) : null}
+            </div>
+            <div className="evidence-links">
+              {(
+                [
+                  ["토큰", launch.tokenAddress],
+                  ["풀", launch.poolAddress],
+                  ["LP 락커", launch.lockerAddress],
+                  ["베스팅 볼트", launch.vestingVaultAddress],
+                ] as const
+              ).map(([label, value]) => (
+                <div key={label}>
+                  <span>{label}</span>
+                  <code>{shortenAddress(value)}</code>
+                  {explorerAvailable ? (
+                    <ExternalLink href={explorer("address", value)}>
+                      explorer
+                    </ExternalLink>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+            {!isPublicDemo ? <ReportToken launch={launch} /> : null}
+          </section>
         </aside>
       </div>
     </section>
