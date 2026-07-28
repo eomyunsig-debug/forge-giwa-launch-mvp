@@ -7,15 +7,16 @@ const securityHeaders = {
   "X-Frame-Options": "DENY",
 };
 
-interface AssetBinding {
-  fetch(request: Request): Promise<Response>;
-}
+/**
+ * @typedef {{ fetch(request: Request): Promise<Response> }} AssetBinding
+ * @typedef {{ ASSETS: AssetBinding }} WorkerEnvironment
+ */
 
-interface WorkerEnvironment {
-  ASSETS: AssetBinding;
-}
-
-function withSecurityHeaders(response: Response): Response {
+/**
+ * @param {Response} response
+ * @returns {Response}
+ */
+function withSecurityHeaders(response) {
   const headers = new Headers(response.headers);
   for (const [name, value] of Object.entries(securityHeaders)) {
     headers.set(name, value);
@@ -28,7 +29,12 @@ function withSecurityHeaders(response: Response): Response {
 }
 
 export default {
-  async fetch(request: Request, env: WorkerEnvironment): Promise<Response> {
+  /**
+   * @param {Request} request
+   * @param {WorkerEnvironment} env
+   * @returns {Promise<Response>}
+   */
+  async fetch(request, env) {
     const url = new URL(request.url);
     let response = await env.ASSETS.fetch(request);
 

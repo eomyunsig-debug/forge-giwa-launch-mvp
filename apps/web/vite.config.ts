@@ -58,7 +58,7 @@ export default defineConfig({
               await mkdir(serverDirectory, { recursive: true });
               await mkdir(metadataDirectory, { recursive: true });
               await copyFile(
-                resolve(import.meta.dirname, "worker/index.ts"),
+                resolve(import.meta.dirname, "worker/index.js"),
                 resolve(serverDirectory, "index.js"),
               );
               await copyFile(

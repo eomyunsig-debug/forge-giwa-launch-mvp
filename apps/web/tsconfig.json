@@ -1,6 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
     "jsx": "react-jsx",
     "rootDir": ".",
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom"]
@@ -10,7 +12,7 @@
     "src/**/*.tsx",
     "test/**/*.ts",
     "test/**/*.tsx",
-    "worker/**/*.ts",
+    "worker/**/*.js",
     "vite.config.ts"
   ]
 }
