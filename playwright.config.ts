@@ -3,6 +3,8 @@ import { resolve } from "node:path";
 
 const tsxCli = resolve(process.cwd(), "node_modules/tsx/dist/cli.mjs");
 const localStackCommand = `exec "${process.execPath}" "${tsxCli}" scripts/local-stack.ts`;
+const webPort = process.env.FORGE_WEB_PORT ?? "5173";
+const webUrl = `http://127.0.0.1:${webPort}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -19,7 +21,7 @@ export default defineConfig({
     ? [["line"], ["html", { open: "never" }]]
     : [["line"]],
   use: {
-    baseURL: "http://127.0.0.1:5173",
+    baseURL: webUrl,
     locale: "ko-KR",
     timezoneId: "Asia/Seoul",
     trace: "retain-on-failure",
@@ -37,7 +39,7 @@ export default defineConfig({
   ],
   webServer: {
     command: localStackCommand,
-    url: "http://127.0.0.1:5173",
+    url: webUrl,
     timeout: 180_000,
     reuseExistingServer: false,
     stdout: "pipe",

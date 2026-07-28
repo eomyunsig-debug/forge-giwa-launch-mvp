@@ -71,7 +71,10 @@ describe("honest missing-data rendering", () => {
       blockTimestamp: new Date(index * 1_000).toISOString(),
     }));
     render(<PriceChart trades={trades} />);
-    expect(screen.getByRole("img")).toHaveAccessibleName(/실제 거래 2건/);
+    const chart = screen.getByRole("img");
+    expect(chart).toHaveAccessibleName(/실제 거래 2건/);
+    expect(chart.querySelector("polyline")).toHaveAttribute("pathLength", "1");
+    expect(chart.querySelectorAll("circle")).toHaveLength(2);
     expect(screen.getByText(/모의 데이터 없음/)).toBeInTheDocument();
     expect(screen.getByText(/저점 대비/)).toBeInTheDocument();
     expect(screen.getByText("가장 싸게 체결")).toBeInTheDocument();

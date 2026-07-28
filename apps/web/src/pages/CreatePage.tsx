@@ -15,6 +15,7 @@ import { z } from "zod";
 
 import { uploadMetadata } from "../api";
 import { deployment, targetChain } from "../config";
+import { MotionPresence, MotionSwap } from "../motion";
 import { useWallet } from "../wallet";
 
 export const draftSchema = z.object({
@@ -286,7 +287,7 @@ export function CreatePage() {
 
   return (
     <section className="page page--create">
-      <header className="page-header">
+      <header className="page-header motion-reveal motion-reveal--1">
         <span className="eyebrow">CREATE ON TESTNET</span>
         <h1>새 커뮤니티 자산 만들기</h1>
         <p>
@@ -297,7 +298,7 @@ export function CreatePage() {
 
       <div className="create-layout">
         <form
-          className="form-card glass-panel"
+          className="form-card glass-panel motion-reveal motion-reveal--2"
           onSubmit={(event) => void prepare(event)}
         >
           <div className="form-section">
@@ -366,15 +367,24 @@ export function CreatePage() {
               onChange={(event) => updateImage(event.target.files?.[0] ?? null)}
               data-testid="create-image"
             />
-            <span className="upload-drop">
-              {imagePreview ? (
-                <img src={imagePreview} alt="선택한 토큰 이미지 미리보기" />
-              ) : (
-                <span aria-hidden="true">↥</span>
-              )}
-              <strong>{image ? image.name : "PNG, JPG 또는 WebP 선택"}</strong>
-              <small>최대 5MB · SVG/HTML 금지</small>
-            </span>
+            <div className="upload-drop">
+              <MotionSwap
+                motionKey={imagePreview ? "preview" : "empty"}
+                className="upload-preview-motion"
+              >
+                <div className="upload-preview-content">
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="선택한 토큰 이미지 미리보기" />
+                  ) : (
+                    <span aria-hidden="true">↥</span>
+                  )}
+                  <strong>
+                    {image ? image.name : "PNG, JPG 또는 WebP 선택"}
+                  </strong>
+                  <small>최대 5MB · SVG/HTML 금지</small>
+                </div>
+              </MotionSwap>
+            </div>
           </label>
 
           <div className="form-divider" />
@@ -421,11 +431,13 @@ export function CreatePage() {
             <small>시작 가격은 선택한 유동성 비율로 결정됩니다.</small>
           </label>
 
-          {error ? (
-            <div className="inline-alert inline-alert--danger" role="alert">
-              {error}
-            </div>
-          ) : null}
+          <MotionPresence show={Boolean(error)} className="form-alert-motion">
+            {error ? (
+              <div className="inline-alert inline-alert--danger" role="alert">
+                {error}
+              </div>
+            ) : null}
+          </MotionPresence>
           <Button
             type="submit"
             busy={status === "uploading"}
@@ -436,7 +448,7 @@ export function CreatePage() {
           </Button>
         </form>
 
-        <aside className="review-card">
+        <aside className="review-card motion-reveal motion-reveal--3">
           <div className="review-card__head">
             <div>
               <span className="eyebrow">IMMUTABLE RULES</span>
@@ -503,34 +515,41 @@ export function CreatePage() {
               }
             />
           </div>
-          {prepared && status === "review" ? (
-            <div className="signing-summary" data-testid="launch-review">
-              <img src={prepared.imageUrl} alt="" />
-              <div>
-                <strong>
-                  {draft.name} · ${draft.symbol}
-                </strong>
-                <small>{prepared.metadataUri}</small>
+          <MotionPresence
+            show={Boolean(prepared && status === "review")}
+            className="launch-review-motion"
+          >
+            {prepared ? (
+              <div className="signing-summary" data-testid="launch-review">
+                <img src={prepared.imageUrl} alt="" />
+                <div>
+                  <strong>
+                    {draft.name} · ${draft.symbol}
+                  </strong>
+                  <small>{prepared.metadataUri}</small>
+                </div>
+                <p>
+                  다음 버튼은 지갑에 컨트랙트 호출을 요청합니다. 지갑 연결과
+                  토큰 생성 승인은 별도 단계입니다.
+                </p>
+                <Button
+                  onClick={() => void launch()}
+                  data-testid="confirm-launch"
+                >
+                  이 규칙으로 트랜잭션 요청
+                </Button>
               </div>
-              <p>
-                다음 버튼은 지갑에 컨트랙트 호출을 요청합니다. 지갑 연결과 토큰
-                생성 승인은 별도 단계입니다.
-              </p>
-              <Button
-                onClick={() => void launch()}
-                data-testid="confirm-launch"
-              >
-                이 규칙으로 트랜잭션 요청
-              </Button>
-            </div>
-          ) : null}
-          {txHash ? (
-            <div className="tx-status" role="status">
-              <span>트랜잭션</span>
-              <code>{txHash}</code>
-              {createdToken ? <code>토큰 {createdToken}</code> : null}
-            </div>
-          ) : null}
+            ) : null}
+          </MotionPresence>
+          <MotionPresence show={Boolean(txHash)} className="tx-status-motion">
+            {txHash ? (
+              <div className="tx-status" role="status">
+                <span>트랜잭션</span>
+                <code>{txHash}</code>
+                {createdToken ? <code>토큰 {createdToken}</code> : null}
+              </div>
+            ) : null}
+          </MotionPresence>
         </aside>
       </div>
     </section>

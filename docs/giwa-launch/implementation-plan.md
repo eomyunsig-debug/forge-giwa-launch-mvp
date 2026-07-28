@@ -21,7 +21,12 @@ Forge is a strict TypeScript pnpm workspace:
 
 - `apps/web`: React/Vite mobile-first SPA. It uses an EIP-6963/injected-wallet
   connector without private-key inputs and reads durable launch state only from
-  the indexer API.
+  the indexer API. Its motion layer uses shared 120/180/420ms
+  fast/base/slow tokens and reusable presence/swap primitives. Exiting content
+  remains rendered only for the visual handoff and is marked `inert` and
+  `aria-hidden`; reduced-motion users receive an immediate state change with no
+  JavaScript exit delay. Numeric market data is never replaced by decorative
+  count-up animation.
 - `apps/indexer`: event-sourced Node service backed by SQLite. It ingests
   factory, token, pool, vesting, and locker events idempotently and exposes
   source-aware APIs.
@@ -192,6 +197,22 @@ image alt coverage, visible local-test disclaimers, and no browser console
 errors. The review also caught and fixed Korean heading orphan characters,
 sub-44px mobile controls, raw wei risk values, and the token-image failure
 fallback before the final Playwright run.
+
+The motion and visual-hierarchy pass keeps movement tied to state changes:
+routes, async loading/error/ready surfaces, wallet state, launch review,
+transaction status, reporting, and chart evidence have explicit entry/exit
+transitions. Mobile feed controls and hero facts were compressed so a real
+launch card is visible at 375×812, while token detail places liquidity, supply,
+ordinary-holder count, recent price, and the chart before the longer read-only
+explanation. Risk education groups contract-enforced properties separately
+from unsupported or unguaranteed claims. Playwright verifies the route exit
+contract, focus restoration, reduced-motion behavior, touch targets, and
+overflow. Lazy route boundaries are keyed to the displayed location so a slow
+chunk can only expose a non-interactive loading fallback, never an active page
+from the previous URL. Quote focus restoration is cancelled when a user edits
+or moves focus mid-request, and the public token detail keeps its chart,
+metrics, read-only disclosure, and risk facts in the same visual and assistive
+technology order.
 
 An independent final audit then caught and closed accidental-chain deployment,
 GIWA finality/event-decoder mismatch, recipient-spoofable buyer counts,
