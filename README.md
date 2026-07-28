@@ -34,6 +34,9 @@ local Anvil `31337` or GIWA Sepolia `91342` and reject mainnet.
 
 ## Public read-only demo
 
+[Open the public demo](https://forge-giwa-launch-eomyunsig.eomyunsig.chatgpt.site)
+or [browse the public source](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp).
+
 The public-hosting build is intentionally read-only. It displays one real
 local Anvil vertical-run record captured from the on-chain indexer at block
 `18` (`0x3a4069210ed56876f0f235ed18bd9b9789f9c7e187c813649df2d8a13ee5074d`)
