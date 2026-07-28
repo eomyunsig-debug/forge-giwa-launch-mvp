@@ -95,6 +95,19 @@ This starts local Anvil, deploys `ProtocolConfig`,
 manifest, starts the indexer at `http://127.0.0.1:8787`, and starts the web app
 at `http://127.0.0.1:5173`.
 
+To keep another local service on `5173` untouched, select an isolated web port
+for the complete stack:
+
+```sh
+FORGE_WEB_PORT=5180 pnpm dev:local
+```
+
+The same variable isolates Playwright's managed stack:
+
+```sh
+FORGE_WEB_PORT=5180 pnpm test:e2e
+```
+
 The local AMM and its prices are test fixtures. They are never presented as
 GIWA market data.
 
@@ -125,7 +138,9 @@ pnpm verify
 Foundry tests include unit, fuzz, invariant, and local integration suites.
 Playwright owns an ephemeral local chain and exercises create, index, feed,
 detail, buy, sell, balance/trade reconciliation, refresh persistence, and the
-375×812, 430×932, and 1440×900 viewports.
+375×812, 430×932, and 1440×900 viewports. It also checks actual route
+entry/exit state, inert outgoing content, main-focus restoration,
+reduced-motion behavior, touch targets, and horizontal overflow.
 
 The exact executed results and screenshot paths are recorded in
 [`verification-report.md`](docs/giwa-launch/verification-report.md).

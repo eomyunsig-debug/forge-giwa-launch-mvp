@@ -1,6 +1,6 @@
 # Forge verification report
 
-Checked at: 2026-07-28 KST
+Checked at: 2026-07-29 KST
 
 This report records the local MVP evidence separately from the blocked GIWA
 Sepolia state-changing smoke. It does not claim a testnet deployment.
@@ -12,7 +12,7 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
 | Prettier formatting          | passed                                                           |
 | ESLint                       | passed                                                           |
 | TypeScript strict typecheck  | passed across 7 workspace projects and tools                     |
-| Vitest                       | 121 passed, 0 failed across 19 files; web 51, SDK 21, indexer 37 |
+| Vitest                       | 127 passed, 0 failed across 20 files; web 57, SDK 21, indexer 37 |
 | Foundry                      | 54 passed, 0 failed across 13 suites                             |
 | Foundry fuzz                 | 11 properties, 256 cases per property                            |
 | Foundry invariants           | 6 invariants, 128 runs × 32 calls, 0 reverts                     |
@@ -21,11 +21,11 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
 | ABI export                   | 8 contract ABIs and one manifest generated                       |
 | Deployment manifests         | 2 validated; incomplete, zero, wrong-chain probes rejected       |
 | Production build             | passed; source maps disabled                                     |
-| Secret scan                  | passed across 166 files                                          |
+| Secret scan                  | passed across 188 files                                          |
 | Dependency audit             | no known vulnerabilities                                         |
 | Public-demo production build | passed                                                           |
 | Public response protections  | CSP, nosniff, frame, referrer, and permissions via worker proxy  |
-| Playwright                   | 1 end-to-end scenario passed in 1.2 minutes                      |
+| Playwright                   | 2 end-to-end scenarios passed in 2.1 minutes                     |
 
 Slither and `git-secrets` were not installed in the execution environment.
 Their absence did not replace the Foundry suites or repository secret scanner.
@@ -35,8 +35,8 @@ Their absence did not replace the Foundry suites or repository secret scanner.
 Playwright started a disposable Anvil chain, deployed the local contracts,
 connected an EIP-6963 test wallet, uploaded content-addressed metadata, created
 the token/pool/vault/locker atomically, waited for the indexer, and opened the
-token detail view. It then executed six differently sized buys, approved
-exactly the sell amount, executed one sell, reconciled all seven indexed trades
+token detail view. It then executed 12 buys from independent accounts, approved
+exactly the sell amount, executed one sell, reconciled all 13 indexed trades
 and receipts, refreshed the page, and confirmed that state was restored from
 the indexer.
 
@@ -61,15 +61,36 @@ top-ten ordinary-holder concentration, and canonical response SHA-256
 `f2ae8f5766cf798a8185b84626ed89de30388f5c4597776c3a5efdfcbbd6da08`.
 No placeholder chart, volume, price, or holder statistic is added.
 
-The in-app browser was also checked manually at 375×812 and 1440×900. It had no
-horizontal overflow or console errors, exposed one main landmark and one H1,
-kept image alternatives, and showed the local-test disclaimer.
+The in-app browser was also checked manually at 375×812, 430×932, 768×900, and
+1440×900. It had no horizontal overflow or console errors, exposed one main
+landmark and one H1, kept image alternatives, and showed the local-test
+disclaimer. At 375px the first recorded launch is visible in the initial home
+viewport and token evidence appears before the longer read-only explanation. At
+768px all four primary navigation links remain available and the chart starts
+at 261px, before the read-only explanation at 766px.
+
+The motion regression suite proves that route exit content remains present only
+for the 160ms visual handoff while being `inert` and `aria-hidden`, rapid
+back-navigation cannot strand an invisible route, and changing
+`prefers-reduced-motion` removes outgoing content immediately. It also checks
+focus restoration from quote to execute, logical token-page focus order,
+44px-or-larger mobile targets, and 721–1050px navigation coverage.
 
 Screenshots:
 
 - `artifacts/screenshots/forge-token-375x812.png`
 - `artifacts/screenshots/forge-token-430x932.png`
 - `artifacts/screenshots/forge-home-1440x900.png`
+- `artifacts/screenshots/motion-audit/after/01-home-desktop.png`
+- `artifacts/screenshots/motion-audit/after/02-token-desktop.png`
+- `artifacts/screenshots/motion-audit/after/03-create-desktop.png`
+- `artifacts/screenshots/motion-audit/after/04-risk-desktop.png`
+- `artifacts/screenshots/motion-audit/after/05-home-mobile.png`
+- `artifacts/screenshots/motion-audit/after/06-token-mobile.png`
+- `artifacts/screenshots/motion-audit/after/07-home-430.png`
+- `artifacts/screenshots/motion-audit/after/08-token-430.png`
+- `artifacts/screenshots/motion-audit/after/09-home-tablet-768.png`
+- `artifacts/screenshots/motion-audit/after/10-token-tablet-768.png`
 
 ## Commands
 
@@ -79,7 +100,7 @@ pnpm contracts:snapshot
 pnpm contracts:snapshot:check
 pnpm audit --audit-level high
 pnpm verify:public-demo
-FORGE_CAPTURE_PUBLIC_DEMO=1 pnpm test:e2e
+FORGE_WEB_PORT=5180 pnpm test:e2e
 ```
 
 `pnpm contracts:snapshot:check` was run twice after generation to prove the
