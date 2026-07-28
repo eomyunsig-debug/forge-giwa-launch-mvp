@@ -74,6 +74,8 @@ describe("honest missing-data rendering", () => {
     expect(screen.getByRole("img")).toHaveAccessibleName(/실제 거래 2건/);
     expect(screen.getByText(/모의 데이터 없음/)).toBeInTheDocument();
     expect(screen.getByText(/저점 대비/)).toBeInTheDocument();
+    expect(screen.getByText("가장 싸게 체결")).toBeInTheDocument();
+    expect(screen.getByText("가장 비싸게 체결")).toBeInTheDocument();
   });
 
   it("renders retail-readable inverse prices and an exact range", () => {

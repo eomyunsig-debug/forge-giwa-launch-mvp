@@ -17,6 +17,8 @@
     "format:check": "prettier --check . && pnpm contracts:fmt:check",
     "lint": "eslint . --max-warnings=0",
     "predev:local": "pnpm check:node",
+    "prebuild": "pnpm check:node",
+    "prebuild:public-demo": "pnpm check:node",
     "pretest": "pnpm check:node",
     "pretest:e2e": "pnpm check:node",
     "pretest:indexer": "pnpm check:node",

@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
+import { format } from "prettier";
 
 const rpcUrl = "http://127.0.0.1:8545";
 const indexerUrl = "http://127.0.0.1:8787";
@@ -18,11 +19,44 @@ async function installAnvilWallet(page: Page): Promise<void> {
         Set<(...values: unknown[]) => void>
       >();
       let rpcId = 0;
+      let selectedAccountIndex = 0;
 
       const emit = (event: string, ...values: unknown[]) => {
         for (const listener of eventListeners.get(event) ?? []) {
           listener(...values);
         }
+      };
+
+      const requestRpc = async (method: string, params: unknown[] = []) => {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: ++rpcId,
+            method,
+            params,
+          }),
+        });
+        const payload = (await response.json()) as {
+          result?: unknown;
+          error?: { code?: number; message?: string; data?: unknown };
+        };
+        if (payload.error) {
+          const error = new Error(
+            payload.error.message ?? "RPC request failed",
+          );
+          Object.assign(error, payload.error);
+          throw error;
+        }
+        return payload.result;
+      };
+
+      const selectedAccounts = async () => {
+        const accounts = await requestRpc("eth_accounts");
+        if (!Array.isArray(accounts)) return [];
+        const selected = (accounts as unknown[])[selectedAccountIndex];
+        return typeof selected === "string" ? [selected] : [];
       };
 
       const provider = {
@@ -41,45 +75,28 @@ async function installAnvilWallet(page: Page): Promise<void> {
             input.method === "eth_requestAccounts"
               ? "eth_accounts"
               : input.method;
-          const response = await fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              jsonrpc: "2.0",
-              id: ++rpcId,
-              method,
-              params: input.params ?? [],
-            }),
-          });
-          const payload = (await response.json()) as {
-            result?: unknown;
-            error?: { code?: number; message?: string; data?: unknown };
-          };
-          if (payload.error) {
-            const error = new Error(
-              payload.error.message ?? "RPC request failed",
-            );
-            Object.assign(error, payload.error);
-            throw error;
-          }
-          if (
-            method === "eth_sendTransaction" &&
-            typeof payload.result === "string"
-          ) {
+          if (method === "eth_accounts") return await selectedAccounts();
+          const result = await requestRpc(
+            method,
+            Array.isArray(input.params)
+              ? Array.from(input.params as readonly unknown[])
+              : [],
+          );
+          if (method === "eth_sendTransaction" && typeof result === "string") {
             const transactions =
               (
                 window as typeof window & {
                   __forgeTransactions?: string[];
                 }
               ).__forgeTransactions ?? [];
-            transactions.push(payload.result);
+            transactions.push(result);
             (
               window as typeof window & {
                 __forgeTransactions?: string[];
               }
             ).__forgeTransactions = transactions;
           }
-          return payload.result;
+          return result;
         },
         on(event: string, listener: (...values: unknown[]) => void) {
           const listeners = eventListeners.get(event) ?? new Set();
@@ -93,6 +110,21 @@ async function installAnvilWallet(page: Page): Promise<void> {
           eventListeners.get(event)?.delete(listener);
         },
       };
+
+      Object.defineProperty(window, "__forgeSelectAccount", {
+        configurable: false,
+        enumerable: false,
+        async value(index: number) {
+          selectedAccountIndex = index;
+          const accounts = await selectedAccounts();
+          if (!accounts[0]) {
+            throw new Error(`Anvil account ${index} is unavailable`);
+          }
+          emit("accountsChanged", accounts);
+          return accounts[0];
+        },
+        writable: false,
+      });
 
       Object.defineProperty(window, "ethereum", {
         configurable: false,
@@ -119,6 +151,24 @@ async function installAnvilWallet(page: Page): Promise<void> {
     },
     { endpoint: rpcUrl },
   );
+}
+
+async function selectAnvilAccount(page: Page, index: number): Promise<string> {
+  const address = await page.evaluate(async (selectedIndex) => {
+    const select = (
+      window as typeof window & {
+        __forgeSelectAccount?: (index: number) => Promise<string>;
+      }
+    ).__forgeSelectAccount;
+    if (!select) throw new Error("Anvil account selector is unavailable");
+    return await select(selectedIndex);
+  }, index);
+  await expect
+    .poll(async () =>
+      (await page.locator(".account-chip").textContent())?.toLowerCase(),
+    )
+    .toContain(address.slice(-4).toLowerCase());
+  return address;
 }
 
 async function waitForIndexedTrade(
@@ -233,8 +283,9 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
   const principal = (await principalResponse.json()) as { result?: string };
   expect(BigInt(principal.result ?? "0x0")).toBe(1n);
 
-  const buyAmounts = ["0.02", "0.03", "0.04", "0.05", "0.06", "0.07"];
+  const buyAmounts = Array.from({ length: 12 }, () => "0.02");
   for (const [index, buyAmount] of buyAmounts.entries()) {
+    await selectAnvilAccount(page, index + 1);
     await page.getByTestId("trade-amount").fill(buyAmount);
     await page.getByTestId("get-quote").click();
     await expect(page.getByText("예상 수령량")).toBeVisible();
@@ -248,6 +299,7 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
     ).toContainText("거래 영수증 확인됨");
   }
 
+  await selectAnvilAccount(page, 1);
   await page.getByRole("tab", { name: "매도" }).click();
   await page.getByTestId("trade-amount").fill("1000");
   await page.getByTestId("get-quote").click();
@@ -255,7 +307,7 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
     /정확히 1,000 FE2E 승인 후 매도/,
   );
   await page.getByTestId("execute-trade").click();
-  await waitForIndexedTrade(page, tokenAddress, 7);
+  await waitForIndexedTrade(page, tokenAddress, 13);
   await expect(
     page.locator(".transaction-state[data-status='confirmed']"),
   ).toContainText("거래 영수증 확인됨");
@@ -268,28 +320,16 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
         }
       ).__forgeTransactions?.length ?? 0,
   );
-  // launch + six buys + exact approval + sell
-  expect(transactionCount).toBe(9);
+  // launch + twelve buys from distinct accounts + exact approval + sell
+  expect(transactionCount).toBe(15);
 
   await page.reload();
   await expect(
     page.getByRole("heading", { name: "Forge E2E Friends" }),
   ).toBeVisible();
-  await expect(page.getByText(/실제 체결 7건/)).toBeVisible();
+  await expect(page.getByText(/실제 체결 13건/)).toBeVisible();
   await expect(page.getByText(/저점 대비/).first()).toBeVisible();
   await expect(page.getByText(/1 tETH ≈/).first()).toBeVisible();
-
-  if (process.env.FORGE_CAPTURE_PUBLIC_DEMO === "1") {
-    const captureResponse = await page.request.get(
-      `${indexerUrl}/api/v1/launches/31337/${tokenAddress}`,
-    );
-    expect(captureResponse.ok()).toBe(true);
-    await writeFile(
-      resolve("apps/web/src/publicDemoRecord.json"),
-      `${JSON.stringify(await captureResponse.json(), null, 2)}\n`,
-      "utf8",
-    );
-  }
 
   const screenshotDirectory = resolve("artifacts/screenshots");
   await mkdir(screenshotDirectory, { recursive: true });
@@ -323,4 +363,20 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(1440);
+
+  if (process.env.FORGE_CAPTURE_PUBLIC_DEMO === "1") {
+    const captureResponse = await page.request.get(
+      `${indexerUrl}/api/v1/launches/31337/${tokenAddress}`,
+    );
+    expect(captureResponse.ok()).toBe(true);
+    const canonicalJson = await format(
+      JSON.stringify(await captureResponse.json()),
+      { parser: "json" },
+    );
+    await writeFile(
+      resolve("apps/web/src/publicDemoRecord.json"),
+      canonicalJson,
+      "utf8",
+    );
+  }
 });

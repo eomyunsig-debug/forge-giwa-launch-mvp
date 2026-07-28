@@ -39,11 +39,14 @@ or [browse the public source](https://github.com/eomyunsig-debug/forge-giwa-laun
 
 The public-hosting build is intentionally read-only. It displays one real
 local Anvil vertical-run record captured from the on-chain indexer at block
-`11` (`0x9777c3b0e068e03a613e94e2cf5933049d7fe87f2de831e44950f6f1066f57de`)
-on 2026-07-28T12:55:13.698Z. Its canonical JSON SHA-256 is
-`e78179a9170b065dac4aa17cb26e3df03ee25a589e112917446d590136a91d3c`.
-The recorded run includes the launch, six buys, an exact-amount approval, one
-sell, seven indexed trades, and refresh restoration.
+`18` (`0x33a6c41e0d8ccacfd5d12d4e909c1e275ab2c7408c1980c24c31982218de37e9`)
+on 2026-07-28T17:30:41.963Z. Its canonical JSON SHA-256 is
+`f2ae8f5766cf798a8185b84626ed89de30388f5c4597776c3a5efdfcbbd6da08`.
+The recorded run includes the launch, buys from 12 distinct accounts, an
+exact-amount approval, one sell, 13 indexed trades, and refresh restoration.
+That distribution records 12 ordinary holders and an 86.10% top-ten ordinary
+holder concentration instead of a mathematically degenerate single-holder
+snapshot.
 
 This is not a live GIWA deployment. Wallet connection, launch, portfolio, and
 trade mutations are disabled in the public build, and no localhost API is

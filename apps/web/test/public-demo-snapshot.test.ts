@@ -3,6 +3,9 @@ import {
   launchDetailSchema,
   launchSummarySchema,
 } from "@forge/shared";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -22,7 +25,7 @@ describe("public demo snapshot", () => {
     expect(publicDemoMeta).toMatchObject({
       chainId: 31_337,
       source: "onchain-indexer",
-      indexedBlock: "11",
+      indexedBlock: "18",
       status: "lagging",
     });
     expect(publicDemoLaunch.description).toBe(
@@ -33,11 +36,32 @@ describe("public demo snapshot", () => {
     expect(publicDemoProvenance.transformations).toHaveLength(3);
     expect(publicDemoLaunch).toMatchObject({
       symbol: "FE2E",
-      recentTrades: 7,
-      circulatingSupply: "201442494989981793660000536",
-      topTenOrdinaryHolderBps: 10_000,
+      recentTrades: 13,
+      uniqueHolders: 12,
+      circulatingSupply: "183379810391264582308502447",
+      topTenOrdinaryHolderBps: 8_610,
     });
-    expect(publicDemoLaunch.trades).toHaveLength(7);
+    expect(publicDemoLaunch.trades).toHaveLength(13);
+    expect(
+      publicDemoLaunch.holders.filter(
+        (holder) => holder.category === "ordinary",
+      ),
+    ).toHaveLength(12);
+    const rootRecordPath = resolve(
+      process.cwd(),
+      "apps/web/src/publicDemoRecord.json",
+    );
+    expect(
+      createHash("sha256")
+        .update(
+          readFileSync(
+            existsSync(rootRecordPath)
+              ? rootRecordPath
+              : resolve(process.cwd(), "src/publicDemoRecord.json"),
+          ),
+        )
+        .digest("hex"),
+    ).toBe(publicDemoProvenance.canonicalResponseSha256);
   });
 
   it("never represents the recorded snapshot as a GIWA deployment", () => {

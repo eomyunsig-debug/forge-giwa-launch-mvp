@@ -270,7 +270,7 @@ async function startAnvil(): Promise<string> {
       "--chain-id",
       chainId.toString(),
       "--accounts",
-      "10",
+      "20",
       "--balance",
       "10000",
       "--mnemonic-random",

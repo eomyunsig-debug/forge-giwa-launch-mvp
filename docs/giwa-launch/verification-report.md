@@ -55,9 +55,10 @@ zero-claim filtering, sell-gas checks, receipt-unknown persistence/recovery, and
 fail-closed contract-fact projection were added.
 
 The public-demo record was then regenerated from the same automated vertical
-flow with `FORGE_CAPTURE_PUBLIC_DEMO=1`. It contains FE2E at block `11`, seven
-actual indexed trades, and canonical response SHA-256
-`e78179a9170b065dac4aa17cb26e3df03ee25a589e112917446d590136a91d3c`.
+flow with `FORGE_CAPTURE_PUBLIC_DEMO=1`. It contains FE2E at block `18`, 13
+actual indexed trades from 12 distinct buyers, 12 ordinary holders, an 86.10%
+top-ten ordinary-holder concentration, and canonical response SHA-256
+`f2ae8f5766cf798a8185b84626ed89de30388f5c4597776c3a5efdfcbbd6da08`.
 No placeholder chart, volume, price, or holder statistic is added.
 
 The in-app browser was also checked manually at 375×812 and 1440×900. It had no
