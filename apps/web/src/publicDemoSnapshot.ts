@@ -18,6 +18,7 @@ export const publicDemoProvenance = {
   transformations: [
     "The localhost-only image URL is represented as null so the public build does not pretend it can serve a missing asset.",
     "Freshness is marked lagging because this deployment is an immutable recording rather than a live indexer connection.",
+    "Ordinary-holder concentration and shares are recalculated from the captured exact balances using the current definition that excludes pool, locker, vesting, burn and zero balances from the denominator.",
   ],
 } as const;
 
@@ -55,38 +56,38 @@ export const publicDemoLaunch: LaunchDetail = {
   uniqueHolders: 2,
   recentVolumeNative: "550000000000000000",
   recentTrades: 2,
-  topTenOrdinaryHolderBps: 1798,
+  topTenOrdinaryHolderBps: 10_000,
   createdAt: "2026-07-27T18:34:10.000Z",
   createdBlock: "14",
   transactionHash:
     "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
   socialOwnershipVerified: false,
   totalSupply: "1000000000000000000000000000",
-  circulatingSupply: "970000000000000000000000000",
+  circulatingSupply: "174471524104302413245727742",
   holders: [
     {
       address: "0x434686d92687af98a3b684d842f8082feb426e50",
       category: "pool",
       balance: "795528475895697586754272258",
-      circulatingShareBps: 8201,
-    },
-    {
-      address: "0x6dd97333a6977e60596614a2951fa8d13652c8ec",
-      category: "ordinary",
-      balance: "41024580541448818654862557",
-      circulatingShareBps: 422,
-    },
-    {
-      address: "0xb29133181c13e768b24f93c46a71d8fcce2d0ce6",
-      category: "vesting",
-      balance: "30000000000000000000000000",
       circulatingShareBps: null,
     },
     {
       address: "0xb342c2eddc429621c861fc5c623097ba30963619",
       category: "ordinary",
       balance: "133446943562853594590865185",
-      circulatingShareBps: 1375,
+      circulatingShareBps: 7648,
+    },
+    {
+      address: "0x6dd97333a6977e60596614a2951fa8d13652c8ec",
+      category: "ordinary",
+      balance: "41024580541448818654862557",
+      circulatingShareBps: 2351,
+    },
+    {
+      address: "0xb29133181c13e768b24f93c46a71d8fcce2d0ce6",
+      category: "vesting",
+      balance: "30000000000000000000000000",
+      circulatingShareBps: null,
     },
   ],
   trades: [
@@ -144,15 +145,16 @@ export const publicDemoLaunch: LaunchDetail = {
     {
       key: "additional-mint",
       label: "추가 민팅",
-      status: "confirmed",
-      value: "불가능",
+      status: "collecting",
+      value: "검증 대기",
       evidence: {
         contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
         transactionHash:
           "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
         blockNumber: "14",
       },
-      explanation: "표준 템플릿에는 생성 이후 민팅 함수가 없습니다.",
+      explanation:
+        "로컬 런치 이벤트는 수집했지만 배포 bytecode가 승인된 템플릿과 일치하는지 아직 독립 검증하지 못했습니다.",
     },
     {
       key: "admin-permissions",
@@ -170,15 +172,16 @@ export const publicDemoLaunch: LaunchDetail = {
     {
       key: "blacklist",
       label: "주소 블랙리스트",
-      status: "not-applicable",
-      value: "기능 없음",
+      status: "collecting",
+      value: "검증 대기",
       evidence: {
         contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
         transactionHash:
           "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
         blockNumber: "14",
       },
-      explanation: "토큰에 주소 차단 기능이 없습니다.",
+      explanation:
+        "배포 bytecode의 주소 차단 기능 부재를 아직 독립적으로 확인하지 못했습니다.",
     },
     {
       key: "contract-source",
@@ -217,71 +220,75 @@ export const publicDemoLaunch: LaunchDetail = {
     {
       key: "liquidity-lock",
       label: "유동성 잠금 방식",
-      status: "confirmed",
-      value: "원금 인출 함수 없는 락커",
+      status: "collecting",
+      value: "락커 주소 기록됨",
       evidence: {
         contractAddress: "0xd228cdcf6fda5c2c0abf0004530cf24c4b07a42d",
         transactionHash:
           "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
         blockNumber: "14",
       },
-      explanation: "표시된 LP 원금은 인출 함수가 없는 락커가 보유합니다.",
+      explanation:
+        "로컬 수직 테스트는 락커 잔액을 확인했지만, 이 정적 공개 기록은 LP 원금 잔액과 승인된 락커 bytecode를 독립적으로 재검증할 RPC를 제공하지 않습니다.",
     },
     {
       key: "pause",
       label: "거래 일시정지",
-      status: "not-applicable",
-      value: "기능 없음",
+      status: "collecting",
+      value: "검증 대기",
       evidence: {
         contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
         transactionHash:
           "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
         blockNumber: "14",
       },
-      explanation: "토큰에 관리자 pause 기능이 없습니다.",
+      explanation:
+        "배포 bytecode의 pause 기능 부재를 아직 독립적으로 확인하지 못했습니다.",
     },
     {
       key: "proxy-upgrade",
       label: "프록시 업그레이드",
-      status: "confirmed",
-      value: "불가능",
+      status: "collecting",
+      value: "검증 대기",
       evidence: {
         contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
         transactionHash:
           "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
         blockNumber: "14",
       },
-      explanation: "런치 토큰은 비업그레이드형 템플릿입니다.",
+      explanation:
+        "배포 bytecode의 proxy 또는 upgrade 경로 부재를 아직 독립적으로 확인하지 못했습니다.",
     },
     {
       key: "top-ten-concentration",
       label: "상위 10개 일반 지갑 집중도",
-      status: "confirmed",
-      value: "1798 bps",
+      status: "high-concentration",
+      value: "10000 bps",
       evidence: {
         contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
       },
       explanation:
-        "pool, locker, vesting, burn, zero 주소를 일반 지갑에서 제외하고 유통 공급량을 분모로 계산합니다.",
+        "총공급량에서 pool, locker, vesting, burn, zero 주소 잔고를 제외한 거래 가능 일반 물량을 분모로 계산합니다.",
     },
     {
       key: "transfer-tax",
       label: "전송세",
-      status: "not-applicable",
-      value: "0",
+      status: "collecting",
+      value: "검증 대기",
       evidence: {
         contractAddress: "0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
         transactionHash:
           "0xc7566b3e0167602110b28a5d10a2956a5bd9d6ef6d7025c1e7f76216ba0a485f",
         blockNumber: "14",
       },
-      explanation: "표준 토큰은 전송세를 부과하지 않습니다.",
+      explanation:
+        "배포 bytecode와 실제 전송 동작을 확인하기 전에는 전송세가 없다고 단정하지 않습니다.",
     },
   ],
   admin: {
     protocolConfigAddress: "0x3e8477b756716b81b0ad2a9e5f52d0e6a10bde56",
     operatorAddress: "0xb740cd04f3f621dbefcbe53b3f72dfccd4e972c7",
-    proxyUpgradeable: false,
+    proxyUpgradeable: null,
     mutableParameters: ["creationFee", "feeRecipient", "adapterAllowlist"],
   },
 };

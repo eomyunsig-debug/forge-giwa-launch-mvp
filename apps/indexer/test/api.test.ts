@@ -122,6 +122,18 @@ describe("indexer HTTP API", () => {
     expect(payload.meta.updatedAt).toBeTruthy();
   });
 
+  it("reports a lagging checkpoint as degraded instead of healthy", async () => {
+    const { app, indexer } = setup();
+    indexer.markLagging(CHAIN_ID);
+
+    const response = await app.request("/health");
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      status: "degraded",
+      chains: [{ status: "lagging" }],
+    });
+  });
+
   it("returns detail, creator and portfolio projections without fake valuation", async () => {
     const { app } = setup();
     const detailResponse = await app.request(
@@ -132,7 +144,10 @@ describe("indexer HTTP API", () => {
         tokenAddress: string;
         recentTrades: number;
         trades: { side: string; nativeAmount: string }[];
-        admin: { proxyUpgradeable: boolean; mutableParameters: string[] };
+        admin: {
+          proxyUpgradeable: boolean | null;
+          mutableParameters: string[];
+        };
         riskFacts: { key: string }[];
       };
       meta: { status: string };
@@ -141,7 +156,7 @@ describe("indexer HTTP API", () => {
       tokenAddress: TOKEN,
       recentTrades: 1,
       admin: {
-        proxyUpgradeable: false,
+        proxyUpgradeable: null,
         mutableParameters: ["creationFee"],
       },
     });

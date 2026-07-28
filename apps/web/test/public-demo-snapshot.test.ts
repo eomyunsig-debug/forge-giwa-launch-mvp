@@ -30,7 +30,11 @@ describe("public demo snapshot", () => {
     );
     expect(publicDemoLaunch.imageUrl).toBeNull();
     expect(publicDemoProvenance.originalImageUrl).toContain("127.0.0.1");
-    expect(publicDemoProvenance.transformations).toHaveLength(2);
+    expect(publicDemoProvenance.transformations).toHaveLength(3);
+    expect(publicDemoLaunch).toMatchObject({
+      circulatingSupply: "174471524104302413245727742",
+      topTenOrdinaryHolderBps: 10_000,
+    });
   });
 
   it("never represents the recorded snapshot as a GIWA deployment", () => {
@@ -42,5 +46,17 @@ describe("public demo snapshot", () => {
       status: "collecting",
       value: null,
     });
+    for (const key of [
+      "additional-mint",
+      "pause",
+      "blacklist",
+      "transfer-tax",
+      "proxy-upgrade",
+      "liquidity-lock",
+    ]) {
+      expect(
+        publicDemoLaunch.riskFacts.find((fact) => fact.key === key),
+      ).toMatchObject({ status: "collecting" });
+    }
   });
 });

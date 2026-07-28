@@ -467,6 +467,19 @@ export class IndexerService {
     });
   }
 
+  markSynced(chainId: number): void {
+    const safeChainId = chainIdSchema.parse(chainId);
+    this.database.transaction(() => {
+      this.database.ensureChain(safeChainId);
+      this.database.db
+        .prepare(
+          `UPDATE indexer_checkpoints SET status = 'synced', error = NULL
+           WHERE chain_id = ?`,
+        )
+        .run(safeChainId);
+    });
+  }
+
   private normalizeLog(
     log: RawChainLog,
     expectedChainId: number,
