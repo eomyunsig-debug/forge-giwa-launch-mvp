@@ -575,19 +575,6 @@ export class ProjectionEngine {
         log.blockTimestamp,
       );
     }
-    this.upsertRisk(
-      log.chainId,
-      event.tokenAddress,
-      "contract-source",
-      "컨트랙트 소스 검증",
-      "collecting",
-      null,
-      "익스플로러의 소스 검증 상태를 아직 확인하지 못했습니다.",
-      event.tokenAddress,
-      log.transactionHash,
-      log.blockNumber.toString(),
-      log.blockTimestamp,
-    );
   }
 
   private adjustBalance(
@@ -782,27 +769,28 @@ export class ProjectionEngine {
         .get(chainId, token.address) as
         | { source_verified: number | null; explorer_url: string | null }
         | undefined;
-      this.upsertRisk(
-        chainId,
-        token.address,
-        "contract-source",
-        "컨트랙트 소스 검증",
-        source?.source_verified == null
-          ? "collecting"
-          : source.source_verified === 1
-            ? "confirmed"
-            : "unverifiable",
-        source?.source_verified == null
-          ? null
-          : source.source_verified === 1
-            ? "검증됨"
-            : "검증할 수 없음",
-        "익스플로러가 보고한 해당 배포 주소의 소스 검증 상태입니다.",
-        token.address,
-        null,
-        null,
-        updatedAt,
-      );
+      if (source?.source_verified == null) {
+        this.db
+          .prepare(
+            `DELETE FROM risk_facts
+             WHERE chain_id = ? AND token_address = ? AND fact_key = ?`,
+          )
+          .run(chainId, token.address, "contract-source");
+      } else {
+        this.upsertRisk(
+          chainId,
+          token.address,
+          "contract-source",
+          "컨트랙트 소스 검증",
+          source.source_verified === 1 ? "confirmed" : "unverifiable",
+          source.source_verified === 1 ? "검증됨" : "검증할 수 없음",
+          "익스플로러가 보고한 해당 배포 주소의 소스 검증 상태입니다.",
+          token.address,
+          null,
+          null,
+          updatedAt,
+        );
+      }
     }
 
     this.db

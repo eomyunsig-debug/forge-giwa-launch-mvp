@@ -39,14 +39,18 @@ or [browse the public source](https://github.com/eomyunsig-debug/forge-giwa-laun
 
 The public-hosting build is intentionally read-only. It displays one real
 local Anvil vertical-run record captured from the on-chain indexer at block
-`18` (`0x3a4069210ed56876f0f235ed18bd9b9789f9c7e187c813649df2d8a13ee5074d`)
-on 2026-07-27T18:34:31.193Z. Its canonical JSON SHA-256 is
-`c3c18c0a913119be8a5135c017c4c26d8fcb97fcc92e1afb6e0acd124f758d81`.
+`11` (`0x9777c3b0e068e03a613e94e2cf5933049d7fe87f2de831e44950f6f1066f57de`)
+on 2026-07-28T12:55:13.698Z. Its canonical JSON SHA-256 is
+`e78179a9170b065dac4aa17cb26e3df03ee25a589e112917446d590136a91d3c`.
+The recorded run includes the launch, six buys, an exact-amount approval, one
+sell, seven indexed trades, and refresh restoration.
 
 This is not a live GIWA deployment. Wallet connection, launch, portfolio, and
 trade mutations are disabled in the public build, and no localhost API is
 called. Missing remote assets remain missing rather than being replaced with
-invented data.
+invented data. Facts verified only during the local vertical run are labeled
+`로컬 실행 시 확인됨`; this state does not claim that the public URL
+independently revalidated the contracts.
 
 ```sh
 pnpm build:public-demo

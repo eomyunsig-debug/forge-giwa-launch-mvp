@@ -26,10 +26,14 @@ function contentType(path: string): string {
       return "text/css";
     case ".html":
       return "text/html";
+    case ".jpg":
+      return "image/jpeg";
     case ".js":
       return "text/javascript";
     case ".png":
       return "image/png";
+    case ".svg":
+      return "image/svg+xml";
     default:
       return "application/octet-stream";
   }
@@ -60,6 +64,9 @@ const assets: AssetBinding = {
 };
 
 async function main() {
+  const recorded = JSON.parse(
+    await readFile(resolve(root, "apps/web/src/publicDemoRecord.json"), "utf8"),
+  ) as { data: { chainId: number; tokenAddress: string } };
   const workerUrl = pathToFileURL(workerPath);
   workerUrl.searchParams.set("verify", `${Date.now()}`);
   const worker = (await import(workerUrl.href)) as WorkerModule;
@@ -82,9 +89,10 @@ async function main() {
   }
 
   for (const path of [
-    "/og.png",
+    "/og.jpg",
+    "/favicon.svg",
     scriptPath,
-    "/token/31337/0x8c8519cf76d0427e4d936183b9b10018c11cb3ba",
+    `/token/${recorded.data.chainId}/${recorded.data.tokenAddress}`,
   ]) {
     const response = await worker.default.fetch(
       new Request(`https://forge.example${path}`),

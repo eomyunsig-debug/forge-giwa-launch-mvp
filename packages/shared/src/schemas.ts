@@ -26,6 +26,7 @@ export const dataMetaSchema = z.object({
 
 export const riskFactStatusSchema = z.enum([
   "confirmed",
+  "recorded-confirmed",
   "not-applicable",
   "caution",
   "high-concentration",

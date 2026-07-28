@@ -61,6 +61,40 @@ function setup() {
 }
 
 describe("event-sourced indexer", () => {
+  it("does not seed a source-verification fact without a producer", () => {
+    const { indexer, repository } = setup();
+    indexer.ingestBlock(launchBlock());
+
+    const beforeEvidence = repository.getLaunchDetail(CHAIN_ID, TOKEN) as {
+      riskFacts: { key: string; status: string }[];
+    };
+    expect(
+      beforeEvidence.riskFacts.some((fact) => fact.key === "contract-source"),
+    ).toBe(false);
+
+    indexer.ingestBlock(
+      block(
+        2,
+        [
+          {
+            type: "ContractSourceStatus",
+            contractAddress: TOKEN,
+            verified: true,
+            explorerUrl: "https://explorer.example/address/token",
+          },
+        ],
+        { parentHash: hash(1001) },
+      ),
+    );
+
+    const afterEvidence = repository.getLaunchDetail(CHAIN_ID, TOKEN) as {
+      riskFacts: { key: string; status: string }[];
+    };
+    expect(
+      afterEvidence.riskFacts.find((fact) => fact.key === "contract-source"),
+    ).toMatchObject({ status: "confirmed" });
+  });
+
   it("deduplicates the exact raw log identity", () => {
     const { database, indexer } = setup();
     const first = indexer.ingestBlock(launchBlock());

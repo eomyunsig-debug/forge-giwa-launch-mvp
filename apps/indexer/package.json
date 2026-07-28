@@ -12,6 +12,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsx watch src/server.ts",
+    "pretest": "node ../../scripts/check-node-version.mjs",
     "start": "node dist/server.js",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"

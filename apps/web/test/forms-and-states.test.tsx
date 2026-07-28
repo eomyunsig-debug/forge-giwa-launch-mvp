@@ -151,7 +151,7 @@ describe("transaction states use precise language", () => {
     expect(formatTradeUnitPrice("9999999", "10000000000000")).toBe("1e-6");
     expect(formatTradeUnitPrice("9999999", "1")).toBe("1e7");
     expect(latestTradePrice([trade("2", "1810"), trade("1", "559")])).toBe(
-      "1.81e-9",
+      "5.52억",
     );
   });
 });

@@ -32,7 +32,12 @@ import {
 import { Link, useParams } from "react-router";
 
 import { fetchLaunch } from "../api";
-import { DataFreshness, PriceChart } from "../components";
+import {
+  DataFreshness,
+  formatInverseTradePrice,
+  PriceChart,
+  summarizeTradePrices,
+} from "../components";
 import { deployment, isPublicDemo, targetChain } from "../config";
 import { useWallet } from "../wallet";
 
@@ -252,7 +257,7 @@ export function latestTradePrice(trades: Trade[]): string | null {
       return current;
     }, null);
   return latest
-    ? formatTradeUnitPrice(latest.nativeAmount, latest.tokenAmount)
+    ? formatInverseTradePrice(latest.nativeAmount, latest.tokenAmount)
     : null;
 }
 
@@ -291,7 +296,11 @@ function CopyAddressButton({ address }: { address: string }) {
 }
 
 function riskTone(fact: RiskFact) {
-  if (fact.status === "confirmed" || fact.status === "not-applicable")
+  if (
+    fact.status === "confirmed" ||
+    fact.status === "recorded-confirmed" ||
+    fact.status === "not-applicable"
+  )
     return "confirmed" as const;
   if (fact.status === "caution" || fact.status === "high-concentration")
     return "caution" as const;
@@ -320,6 +329,63 @@ function riskValue(fact: RiskFact, symbol: string): string {
     return "검증할 수 없음";
   }
   return fact.value;
+}
+
+function HolderDistribution({ launch }: { launch: LaunchDetail }) {
+  const holdersByBalance = launch.holders.slice().sort((left, right) => {
+    const leftBalance = BigInt(left.balance);
+    const rightBalance = BigInt(right.balance);
+    return leftBalance === rightBalance
+      ? 0
+      : leftBalance > rightBalance
+        ? -1
+        : 1;
+  });
+
+  return (
+    <section className="glass-panel distribution-card">
+      <div className="section-heading section-heading--compact">
+        <div>
+          <span className="eyebrow">DISTRIBUTION</span>
+          <h2>홀더 분포</h2>
+        </div>
+        <span>
+          거래 가능 일반 물량 대비 상위 10 지갑{" "}
+          {formatBps(launch.topTenOrdinaryHolderBps)}
+        </span>
+      </div>
+      {launch.holders.length ? (
+        <div
+          className="holder-table"
+          role="table"
+          aria-label="잔액 내림차순 홀더 분포"
+        >
+          <div role="row">
+            <strong role="columnheader">주소</strong>
+            <strong role="columnheader">구분</strong>
+            <strong role="columnheader">잔액</strong>
+            <strong role="columnheader">거래 가능 물량 비중</strong>
+          </div>
+          {holdersByBalance.slice(0, 20).map((holder) => (
+            <div role="row" key={holder.address}>
+              <code role="cell">{shortenAddress(holder.address)}</code>
+              <span role="cell">{holder.category}</span>
+              <strong role="cell">
+                {formatUnits(BigInt(holder.balance), 18, true)}
+              </strong>
+              <span role="cell">{formatBps(holder.circulatingShareBps)}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>홀더 Transfer 데이터 수집 중</p>
+      )}
+      <p className="panel-note">
+        비중 분모는 pool·락커·베스팅·소각·zero 잔고를 제외한 거래 가능 일반
+        물량입니다.
+      </p>
+    </section>
+  );
 }
 
 export function statusCopy(status: TradeStatus): string {
@@ -1134,15 +1200,11 @@ export function TokenPage() {
     (fact) => fact.key === "creator-allocation" && fact.status === "confirmed",
   );
   const recentPrice = latestTradePrice(launch.trades);
-  const holdersByBalance = launch.holders.slice().sort((left, right) => {
-    const leftBalance = BigInt(left.balance);
-    const rightBalance = BigInt(right.balance);
-    return leftBalance === rightBalance
-      ? 0
-      : leftBalance > rightBalance
-        ? -1
-        : 1;
-  });
+  const priceSummary = summarizeTradePrices(launch.trades);
+  const hasRecordedRiskFacts = launch.riskFacts.some(
+    (fact) => fact.status === "recorded-confirmed",
+  );
+  const explorerAvailable = Boolean(targetChain.blockExplorers?.default.url);
 
   return (
     <section className="page token-page">
@@ -1167,9 +1229,11 @@ export function TokenPage() {
             </div>
             <div className="address-row">
               <code>{shortenAddress(launch.tokenAddress)}</code>
-              <ExternalLink href={explorer("address", launch.tokenAddress)}>
-                컨트랙트
-              </ExternalLink>
+              {explorerAvailable ? (
+                <ExternalLink href={explorer("address", launch.tokenAddress)}>
+                  컨트랙트
+                </ExternalLink>
+              ) : null}
               <CopyAddressButton address={launch.tokenAddress} />
             </div>
           </div>
@@ -1202,9 +1266,18 @@ export function TokenPage() {
                 <span className="eyebrow">ACTUAL TRADES</span>
                 <h2>가격 흐름</h2>
               </div>
-              <span>실제 체결 {launch.trades.length}건</span>
+              <span>
+                실제 체결 {launch.trades.length}건 · 저점 대비{" "}
+                {priceSummary?.changeBps == null
+                  ? "—"
+                  : `+${formatBps(priceSummary.changeBps)}`}
+              </span>
             </div>
-            <PriceChart trades={launch.trades} />
+            <PriceChart
+              trades={launch.trades}
+              symbol={launch.symbol}
+              nativeSymbol={targetChain.nativeCurrency.symbol}
+            />
             <div className="metric-strip">
               <Metric
                 label="실제 유동성"
@@ -1231,7 +1304,7 @@ export function TokenPage() {
                 value={
                   recentPrice == null
                     ? "—"
-                    : `${recentPrice} ${targetChain.nativeCurrency.symbol}/${launch.symbol}`
+                    : `1 ${targetChain.nativeCurrency.symbol} ≈ ${recentPrice} ${launch.symbol}`
                 }
               />
             </div>
@@ -1243,7 +1316,12 @@ export function TokenPage() {
                 <span className="eyebrow">VERIFIABLE FACTS</span>
                 <h2>위험 사실</h2>
               </div>
-              <Link to="/about/risk">배지 의미 보기 →</Link>
+              <div className="risk-heading__links">
+                {hasRecordedRiskFacts ? (
+                  <span>로컬 실행 시 확인 · 공개 URL 재검증 없음</span>
+                ) : null}
+                <Link to="/about/risk">배지 의미 보기 →</Link>
+              </div>
             </div>
             <div className="risk-grid">
               {launch.riskFacts.map((fact) => (
@@ -1253,15 +1331,17 @@ export function TokenPage() {
                     <Badge status={riskTone(fact)}>
                       {fact.status === "confirmed"
                         ? "확인됨"
-                        : fact.status === "not-applicable"
-                          ? "해당 없음"
-                          : fact.status === "caution"
-                            ? "주의"
-                            : fact.status === "high-concentration"
-                              ? "높은 집중도"
-                              : fact.status === "collecting"
-                                ? "데이터 수집 중"
-                                : "검증할 수 없음"}
+                        : fact.status === "recorded-confirmed"
+                          ? "로컬 실행 시 확인됨"
+                          : fact.status === "not-applicable"
+                            ? "해당 없음"
+                            : fact.status === "caution"
+                              ? "주의"
+                              : fact.status === "high-concentration"
+                                ? "높은 집중도"
+                                : fact.status === "collecting"
+                                  ? "데이터 수집 중"
+                                  : "검증할 수 없음"}
                     </Badge>
                   </div>
                   <strong>{riskValue(fact, launch.symbol)}</strong>
@@ -1269,47 +1349,6 @@ export function TokenPage() {
                 </article>
               ))}
             </div>
-          </section>
-
-          <section className="glass-panel distribution-card">
-            <div className="section-heading section-heading--compact">
-              <div>
-                <span className="eyebrow">DISTRIBUTION</span>
-                <h2>홀더 분포</h2>
-              </div>
-              <span>
-                거래 가능 일반 물량(풀·락커·베스팅·소각·zero 제외) 대비 상위 10
-                지갑 비중 {formatBps(launch.topTenOrdinaryHolderBps)}
-              </span>
-            </div>
-            {launch.holders.length ? (
-              <div
-                className="holder-table"
-                role="table"
-                aria-label="잔액 내림차순 홀더 분포"
-              >
-                <div role="row">
-                  <strong role="columnheader">주소</strong>
-                  <strong role="columnheader">구분</strong>
-                  <strong role="columnheader">잔액</strong>
-                  <strong role="columnheader">거래 가능 물량 비중</strong>
-                </div>
-                {holdersByBalance.slice(0, 20).map((holder) => (
-                  <div role="row" key={holder.address}>
-                    <code role="cell">{shortenAddress(holder.address)}</code>
-                    <span role="cell">{holder.category}</span>
-                    <strong role="cell">
-                      {formatUnits(BigInt(holder.balance), 18, true)}
-                    </strong>
-                    <span role="cell">
-                      {formatBps(holder.circulatingShareBps)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>홀더 Transfer 데이터 수집 중</p>
-            )}
           </section>
 
           <section className="glass-panel vesting-card">
@@ -1363,7 +1402,12 @@ export function TokenPage() {
           </section>
 
           <section className="glass-panel evidence-card">
-            <h2>직접 확인할 주소</h2>
+            <div className="section-heading section-heading--compact">
+              <h2>직접 확인할 주소</h2>
+              {!explorerAvailable ? (
+                <span>로컬 체인 · 익스플로러 없음</span>
+              ) : null}
+            </div>
             <div className="evidence-links">
               {(
                 [
@@ -1376,9 +1420,11 @@ export function TokenPage() {
                 <div key={label}>
                   <span>{label}</span>
                   <code>{shortenAddress(value)}</code>
-                  <ExternalLink href={explorer("address", value)}>
-                    explorer
-                  </ExternalLink>
+                  {explorerAvailable ? (
+                    <ExternalLink href={explorer("address", value)}>
+                      explorer
+                    </ExternalLink>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -1386,41 +1432,44 @@ export function TokenPage() {
           </section>
         </div>
         <aside className="token-sidebar">
-          {isPublicDemo ? (
-            <div className="glass-panel public-demo-trade">
-              <Badge status="muted">READ ONLY</Badge>
-              <h2>거래는 로컬 검증에서만 실행했습니다</h2>
-              <p>
-                공개 URL에서는 지갑 연결, 견적, 승인, 매수·매도 요청을 모두
-                차단합니다. 표시된 값은 블록 18까지 수집한 로컬 Anvil 인덱서
-                기록이며 GIWA 시장 데이터가 아닙니다.
-              </p>
-              <div className="metric-strip">
-                <Metric label="기록된 거래" value={launch.trades.length} />
-                <Metric
-                  label="기록된 유동성"
-                  value={
-                    launch.actualLiquidityNative == null
-                      ? "—"
-                      : `${formatUnits(BigInt(launch.actualLiquidityNative))} tETH`
-                  }
-                />
+          <div className="token-sidebar__sticky">
+            {isPublicDemo ? (
+              <div className="glass-panel public-demo-trade">
+                <Badge status="muted">READ ONLY</Badge>
+                <h2>거래는 로컬 검증에서만 실행했습니다</h2>
+                <p>
+                  공개 URL에서는 지갑 연결, 견적, 승인, 매수·매도 요청을 모두
+                  차단합니다. 표시된 값은 기록 시점까지 수집한 로컬 Anvil 인덱서
+                  결과이며 GIWA 시장 데이터가 아닙니다.
+                </p>
+                <div className="metric-strip">
+                  <Metric label="기록된 거래" value={launch.trades.length} />
+                  <Metric
+                    label="기록된 유동성"
+                    value={
+                      launch.actualLiquidityNative == null
+                        ? "—"
+                        : `${formatUnits(BigInt(launch.actualLiquidityNative))} tETH`
+                    }
+                  />
+                </div>
               </div>
+            ) : (
+              <TradePanel
+                key={`${launch.chainId}:${launch.tokenAddress}`}
+                launch={launch}
+                onReconcile={async () => query.refetch()}
+              />
+            )}
+            <div className="glass-panel caution-card">
+              <strong>거래 전 확인</strong>
+              <p>
+                Liquidity Locked는 표시된 LP 원금의 인출 제한만 의미합니다.
+                가격·AMM 운영·창작자 행동을 보증하지 않습니다.
+              </p>
             </div>
-          ) : (
-            <TradePanel
-              key={`${launch.chainId}:${launch.tokenAddress}`}
-              launch={launch}
-              onReconcile={async () => query.refetch()}
-            />
-          )}
-          <div className="glass-panel caution-card">
-            <strong>거래 전 확인</strong>
-            <p>
-              Liquidity Locked는 표시된 LP 원금의 인출 제한만 의미합니다.
-              가격·AMM 운영·창작자 행동을 보증하지 않습니다.
-            </p>
           </div>
+          <HolderDistribution launch={launch} />
         </aside>
       </div>
     </section>

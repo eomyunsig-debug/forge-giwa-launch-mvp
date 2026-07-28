@@ -12,7 +12,7 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
 | Prettier formatting          | passed                                                           |
 | ESLint                       | passed                                                           |
 | TypeScript strict typecheck  | passed across 7 workspace projects and tools                     |
-| Vitest                       | 118 passed, 0 failed across 19 files; web 50, SDK 21, indexer 35 |
+| Vitest                       | 121 passed, 0 failed across 19 files; web 51, SDK 21, indexer 37 |
 | Foundry                      | 54 passed, 0 failed across 13 suites                             |
 | Foundry fuzz                 | 11 properties, 256 cases per property                            |
 | Foundry invariants           | 6 invariants, 128 runs × 32 calls, 0 reverts                     |
@@ -25,7 +25,7 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
 | Dependency audit             | no known vulnerabilities                                         |
 | Public-demo production build | passed                                                           |
 | Public response protections  | CSP, nosniff, frame, referrer, and permissions via worker proxy  |
-| Playwright                   | 1 end-to-end scenario passed in 27.9 seconds                     |
+| Playwright                   | 1 end-to-end scenario passed in 1.2 minutes                      |
 
 Slither and `git-secrets` were not installed in the execution environment.
 Their absence did not replace the Foundry suites or repository secret scanner.
@@ -35,20 +35,30 @@ Their absence did not replace the Foundry suites or repository secret scanner.
 Playwright started a disposable Anvil chain, deployed the local contracts,
 connected an EIP-6963 test wallet, uploaded content-addressed metadata, created
 the token/pool/vault/locker atomically, waited for the indexer, and opened the
-token detail view. It then executed a buy, approved exactly the sell amount,
-executed a sell, reconciled receipts and indexed state, refreshed the page, and
-confirmed that state was restored from the indexer.
+token detail view. It then executed six differently sized buys, approved
+exactly the sell amount, executed one sell, reconciled all seven indexed trades
+and receipts, refreshed the page, and confirmed that state was restored from
+the indexer.
 
 The browser flow also queried the launch-specific locker directly over Anvil
-RPC and required `principalIntact() == true`. The UI intentionally withheld the
-`Liquidity Locked` and template-verification badges because the indexer has not
-yet attested deployed runtime bytecode; those facts remained `데이터 수집 중`.
+RPC and required `principalIntact() == true`. The live local UI intentionally
+withheld the `Liquidity Locked` and template-verification badges because the
+indexer has not yet attested deployed runtime bytecode; those facts remained
+`데이터 수집 중`. The immutable public recording translates only facts proven
+by that completed local run to `로컬 실행 시 확인됨`, never to a live
+`확인됨` claim.
 
 The final E2E rerun occurred after the deployment-chain guards, standard V2
 event decoder, transaction-sender buyer attribution, metadata hydration,
 persisted non-starving metadata backoff, initial AMM event-order recovery,
 zero-claim filtering, sell-gas checks, receipt-unknown persistence/recovery, and
 fail-closed contract-fact projection were added.
+
+The public-demo record was then regenerated from the same automated vertical
+flow with `FORGE_CAPTURE_PUBLIC_DEMO=1`. It contains FE2E at block `11`, seven
+actual indexed trades, and canonical response SHA-256
+`e78179a9170b065dac4aa17cb26e3df03ee25a589e112917446d590136a91d3c`.
+No placeholder chart, volume, price, or holder statistic is added.
 
 The in-app browser was also checked manually at 375×812 and 1440×900. It had no
 horizontal overflow or console errors, exposed one main landmark and one H1,
@@ -68,7 +78,7 @@ pnpm contracts:snapshot
 pnpm contracts:snapshot:check
 pnpm audit --audit-level high
 pnpm verify:public-demo
-pnpm test:e2e
+FORGE_CAPTURE_PUBLIC_DEMO=1 pnpm test:e2e
 ```
 
 `pnpm contracts:snapshot:check` was run twice after generation to prove the

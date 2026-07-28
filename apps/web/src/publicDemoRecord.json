@@ -1,0 +1,297 @@
+{
+  "data": {
+    "chainId": 31337,
+    "tokenAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+    "name": "Forge E2E Friends",
+    "symbol": "FE2E",
+    "metadataUri": "http://127.0.0.1:8787/uploads/6e765b4d099dde8a8fdf672c3ac1311923b7c7a8ad15ddbb356b1a7c1db48bda.json",
+    "metadataHash": "0x6e765b4d099dde8a8fdf672c3ac1311923b7c7a8ad15ddbb356b1a7c1db48bda",
+    "imageUrl": "http://127.0.0.1:8787/uploads/431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460.png",
+    "description": "로컬 Anvil에서 생성·거래·인덱싱 복원을 검증하는 테스트 자산입니다.",
+    "creatorAddress": "0xe3329f4b7a38919464a9da8cb1fcd88d642d56e7",
+    "creatorAllocationBps": 500,
+    "creatorAllocation": "50000000000000000000000000",
+    "vestingVaultAddress": "0xd7fa8850a5460296705af537f5fb45dc12fc3446",
+    "poolAddress": "0xabadbb2a5de77a7a70ab7620edf94ffb9df5c60b",
+    "lockerAddress": "0xeb0e7b82c221d2c2ad909369303734589da45a20",
+    "lpTokenAddress": "0xabadbb2a5de77a7a70ab7620edf94ffb9df5c60b",
+    "actualLiquidityNative": "1269998308493340058",
+    "uniqueHolders": 1,
+    "recentVolumeNative": "270001691506659942",
+    "recentTrades": 7,
+    "topTenOrdinaryHolderBps": 10000,
+    "createdAt": "2026-07-28T12:54:20.000Z",
+    "createdBlock": "3",
+    "transactionHash": "0x282b6fd4a59bdc96772ad2c4164c8c511c2d8038f0cbc5db30d8e56a171a9473",
+    "socialOwnershipVerified": false,
+    "totalSupply": "1000000000000000000000000000",
+    "circulatingSupply": "201442494989981793660000536",
+    "holders": [
+      {
+        "address": "0xabadbb2a5de77a7a70ab7620edf94ffb9df5c60b",
+        "category": "pool",
+        "balance": "748557505010018206339999464",
+        "circulatingShareBps": null
+      },
+      {
+        "address": "0xe3329f4b7a38919464a9da8cb1fcd88d642d56e7",
+        "category": "ordinary",
+        "balance": "201442494989981793660000536",
+        "circulatingShareBps": 10000
+      },
+      {
+        "address": "0xd7fa8850a5460296705af537f5fb45dc12fc3446",
+        "category": "vesting",
+        "balance": "50000000000000000000000000",
+        "circulatingShareBps": null
+      }
+    ],
+    "trades": [
+      {
+        "chainId": 31337,
+        "tokenAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+        "poolAddress": "0xabadbb2a5de77a7a70ab7620edf94ffb9df5c60b",
+        "transactionHash": "0x7ae6866499b37dddd2a2eec2e6c12ecf7d6ece61b092176dedd30b452220ea04",
+        "logIndex": 3,
+        "traderAddress": "0xe3329f4b7a38919464a9da8cb1fcd88d642d56e7",
+        "side": "sell",
+        "nativeAmount": "1691506659942",
+        "tokenAmount": "1000000000000000000000",
+        "blockNumber": "11",
+        "blockTimestamp": "2026-07-28T12:55:13.000Z"
+      },
+      {
+        "chainId": 31337,
+        "tokenAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+        "poolAddress": "0xabadbb2a5de77a7a70ab7620edf94ffb9df5c60b",
+        "transactionHash": "0x90f7e90b0dce924f2bd01c3211d04acb39150f1422f20505f65bfb0f57319f35",
+        "logIndex": 1,
+        "traderAddress": "0xe3329f4b7a38919464a9da8cb1fcd88d642d56e7",
+        "side": "buy",
+        "nativeAmount": "70000000000000000",
+        "tokenAmount": "43534798737207642183723802",
+        "blockNumber": "9",
+        "blockTimestamp": "2026-07-28T12:55:04.000Z"
+      },
+      {
+        "chainId": 31337,
+        "tokenAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+        "poolAddress": "0xabadbb2a5de77a7a70ab7620edf94ffb9df5c60b",
+        "transactionHash": "0x55f3371f4cac68b18844b360d1d5bb7311f93792b47855cadf93d839bc936efd",
+        "logIndex": 1,
+        "traderAddress": "0xe3329f4b7a38919464a9da8cb1fcd88d642d56e7",
+        "side": "buy",
+        "nativeAmount": "60000000000000000",
+        "tokenAmount": "41563948938736008998850110",
+        "blockNumber": "8",
+        "blockTimestamp": "2026-07-28T12:54:56.000Z"
+      },
+      {
+        "chainId": 31337,
+        "tokenAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+        "poolAddress": "0xabadbb2a5de77a7a70ab7620edf94ffb9df5c60b",
+        "transactionHash": "0xd7c4c9a836fe5c8df209dd21971e4cc2053f6e3987250e5ab6fc0dd5be9f1a58",
+        "logIndex": 1,
+        "traderAddress": "0xe3329f4b7a38919464a9da8cb1fcd88d642d56e7",
+        "side": "buy",
+        "nativeAmount": "50000000000000000",
+        "tokenAmount": "38126343437059815227064479",
+        "blockNumber": "7",
+        "blockTimestamp": "2026-07-28T12:54:47.000Z"
+      },
+      {
+        "chainId": 31337,
+        "tokenAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+        "poolAddress": "0xabadbb2a5de77a7a70ab7620edf94ffb9df5c60b",
+        "transactionHash": "0x03e755c443bcef88d8cfbc11dd306d6606f07ae4e1e6ac8eb4e92b2341205dd0",
+        "logIndex": 1,
+        "traderAddress": "0xe3329f4b7a38919464a9da8cb1fcd88d642d56e7",
+        "side": "buy",
+        "nativeAmount": "40000000000000000",
+        "tokenAmount": "33111095288939146961195769",
+        "blockNumber": "6",
+        "blockTimestamp": "2026-07-28T12:54:38.000Z"
+      },
+      {
+        "chainId": 31337,
+        "tokenAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+        "poolAddress": "0xabadbb2a5de77a7a70ab7620edf94ffb9df5c60b",
+        "transactionHash": "0xf4804ff4d149075cfcd435c1507519a10a811a960e599b07185c543d6ad7021c",
+        "logIndex": 1,
+        "traderAddress": "0xe3329f4b7a38919464a9da8cb1fcd88d642d56e7",
+        "side": "buy",
+        "nativeAmount": "30000000000000000",
+        "tokenAmount": "26534647451109556977991209",
+        "blockNumber": "5",
+        "blockTimestamp": "2026-07-28T12:54:30.000Z"
+      },
+      {
+        "chainId": 31337,
+        "tokenAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+        "poolAddress": "0xabadbb2a5de77a7a70ab7620edf94ffb9df5c60b",
+        "transactionHash": "0x733eb62eb50964f1a3a208823aca40bcd0a118741746f1826e3bbabb8a66775b",
+        "logIndex": 1,
+        "traderAddress": "0xe3329f4b7a38919464a9da8cb1fcd88d642d56e7",
+        "side": "buy",
+        "nativeAmount": "20000000000000000",
+        "tokenAmount": "18572661136929623311175167",
+        "blockNumber": "4",
+        "blockTimestamp": "2026-07-28T12:54:21.000Z"
+      }
+    ],
+    "vesting": {
+      "vaultAddress": "0xd7fa8850a5460296705af537f5fb45dc12fc3446",
+      "tokenAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+      "creatorAddress": "0xe3329f4b7a38919464a9da8cb1fcd88d642d56e7",
+      "totalAllocation": "50000000000000000000000000",
+      "claimed": "0",
+      "claimable": "0",
+      "locked": "50000000000000000000000000",
+      "cliffAt": "2026-07-29T12:54:20.000Z",
+      "fullyVestedAt": "2026-08-27T12:54:20.000Z"
+    },
+    "riskFacts": [
+      {
+        "key": "actual-liquidity",
+        "label": "실제 유동성",
+        "status": "confirmed",
+        "value": "1269998308493340058",
+        "evidence": {
+          "contractAddress": "0xabadbb2a5de77a7a70ab7620edf94ffb9df5c60b"
+        },
+        "explanation": "마지막으로 인덱싱한 pool의 네이티브 자산 reserve입니다."
+      },
+      {
+        "key": "additional-mint",
+        "label": "추가 민팅",
+        "status": "collecting",
+        "value": "검증 대기",
+        "evidence": {
+          "contractAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+          "transactionHash": "0x282b6fd4a59bdc96772ad2c4164c8c511c2d8038f0cbc5db30d8e56a171a9473",
+          "blockNumber": "3"
+        },
+        "explanation": "런치 이벤트는 수집했지만 배포 bytecode가 승인된 템플릿과 일치하는지 아직 확인하지 못했습니다."
+      },
+      {
+        "key": "admin-permissions",
+        "label": "관리자 권한",
+        "status": "caution",
+        "value": "creationFee, feeRecipient, adapterAllowlist",
+        "evidence": {
+          "contractAddress": "0x56f052119107257b94e47f88d17d0bfce6a343eb",
+          "transactionHash": "0x282b6fd4a59bdc96772ad2c4164c8c511c2d8038f0cbc5db30d8e56a171a9473",
+          "blockNumber": "3"
+        },
+        "explanation": "ProtocolConfig에서 변경 가능한 항목만 표시합니다."
+      },
+      {
+        "key": "blacklist",
+        "label": "주소 블랙리스트",
+        "status": "collecting",
+        "value": "검증 대기",
+        "evidence": {
+          "contractAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+          "transactionHash": "0x282b6fd4a59bdc96772ad2c4164c8c511c2d8038f0cbc5db30d8e56a171a9473",
+          "blockNumber": "3"
+        },
+        "explanation": "배포 bytecode의 주소 차단 기능 부재를 아직 독립적으로 확인하지 못했습니다."
+      },
+      {
+        "key": "creator-allocation",
+        "label": "창작자 배정",
+        "status": "confirmed",
+        "value": "500 bps",
+        "evidence": {
+          "contractAddress": "0xd7fa8850a5460296705af537f5fb45dc12fc3446",
+          "transactionHash": "0x282b6fd4a59bdc96772ad2c4164c8c511c2d8038f0cbc5db30d8e56a171a9473",
+          "blockNumber": "3"
+        },
+        "explanation": "런치 트랜잭션에 기록된 창작자 배정 비율입니다."
+      },
+      {
+        "key": "creator-locked-balance",
+        "label": "잠긴 창작자 물량",
+        "status": "confirmed",
+        "value": "50000000000000000000000000",
+        "evidence": {
+          "contractAddress": "0xd7fa8850a5460296705af537f5fb45dc12fc3446"
+        },
+        "explanation": "현재 시각의 선형 베스팅을 반영해 아직 vest되지 않은 창작자 물량만 표시합니다."
+      },
+      {
+        "key": "liquidity-lock",
+        "label": "유동성 잠금 방식",
+        "status": "collecting",
+        "value": "락커 주소 기록됨",
+        "evidence": {
+          "contractAddress": "0xeb0e7b82c221d2c2ad909369303734589da45a20",
+          "transactionHash": "0x282b6fd4a59bdc96772ad2c4164c8c511c2d8038f0cbc5db30d8e56a171a9473",
+          "blockNumber": "3"
+        },
+        "explanation": "런치 이벤트에 락커 주소는 기록됐지만 LP 원금 잔액과 승인된 락커 bytecode를 아직 함께 확인하지 못했습니다."
+      },
+      {
+        "key": "pause",
+        "label": "거래 일시정지",
+        "status": "collecting",
+        "value": "검증 대기",
+        "evidence": {
+          "contractAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+          "transactionHash": "0x282b6fd4a59bdc96772ad2c4164c8c511c2d8038f0cbc5db30d8e56a171a9473",
+          "blockNumber": "3"
+        },
+        "explanation": "배포 bytecode의 pause 기능 부재를 아직 독립적으로 확인하지 못했습니다."
+      },
+      {
+        "key": "proxy-upgrade",
+        "label": "프록시 업그레이드",
+        "status": "collecting",
+        "value": "검증 대기",
+        "evidence": {
+          "contractAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+          "transactionHash": "0x282b6fd4a59bdc96772ad2c4164c8c511c2d8038f0cbc5db30d8e56a171a9473",
+          "blockNumber": "3"
+        },
+        "explanation": "배포 bytecode의 proxy 또는 upgrade 경로 부재를 아직 독립적으로 확인하지 못했습니다."
+      },
+      {
+        "key": "top-ten-concentration",
+        "label": "상위 10개 일반 지갑 집중도",
+        "status": "high-concentration",
+        "value": "10000 bps",
+        "evidence": {
+          "contractAddress": "0x0dc744e1e9389ba360498993020380d2882e326c"
+        },
+        "explanation": "총공급량에서 pool, locker, vesting, burn, zero 주소 잔고를 제외한 거래 가능 일반 물량을 분모로 계산합니다."
+      },
+      {
+        "key": "transfer-tax",
+        "label": "전송세",
+        "status": "collecting",
+        "value": "검증 대기",
+        "evidence": {
+          "contractAddress": "0x0dc744e1e9389ba360498993020380d2882e326c",
+          "transactionHash": "0x282b6fd4a59bdc96772ad2c4164c8c511c2d8038f0cbc5db30d8e56a171a9473",
+          "blockNumber": "3"
+        },
+        "explanation": "배포 bytecode와 실제 전송 동작을 확인하기 전에는 전송세가 없다고 단정하지 않습니다."
+      }
+    ],
+    "admin": {
+      "protocolConfigAddress": "0x56f052119107257b94e47f88d17d0bfce6a343eb",
+      "operatorAddress": "0xe3329f4b7a38919464a9da8cb1fcd88d642d56e7",
+      "proxyUpgradeable": null,
+      "mutableParameters": ["creationFee", "feeRecipient", "adapterAllowlist"]
+    }
+  },
+  "meta": {
+    "chainId": 31337,
+    "source": "onchain-indexer",
+    "indexedBlock": "11",
+    "indexedBlockHash": "0x9777c3b0e068e03a613e94e2cf5933049d7fe87f2de831e44950f6f1066f57de",
+    "updatedAt": "2026-07-28T12:55:13.698Z",
+    "status": "synced",
+    "error": null
+  }
+}

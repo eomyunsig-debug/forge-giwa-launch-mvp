@@ -183,7 +183,7 @@ describe("share metadata", () => {
     expect(html).toContain('name="twitter:card" content="summary_large_image"');
     expect(html).toContain("GIWA 공식 서비스가 아닙니다");
     expect(html).toContain(
-      "https://forge-giwa-launch-eomyunsig.eomyunsig.chatgpt.site/og.png",
+      "https://forge-giwa-launch-eomyunsig.eomyunsig.chatgpt.site/og.jpg",
     );
   });
 });
