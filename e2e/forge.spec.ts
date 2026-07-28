@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
+import { format } from "prettier";
 
 const rpcUrl = "http://127.0.0.1:8545";
 const indexerUrl = "http://127.0.0.1:8787";
@@ -368,9 +369,13 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
       `${indexerUrl}/api/v1/launches/31337/${tokenAddress}`,
     );
     expect(captureResponse.ok()).toBe(true);
+    const canonicalJson = await format(
+      JSON.stringify(await captureResponse.json()),
+      { parser: "json" },
+    );
     await writeFile(
       resolve("apps/web/src/publicDemoRecord.json"),
-      `${JSON.stringify(await captureResponse.json(), null, 2)}\n`,
+      canonicalJson,
       "utf8",
     );
   }
