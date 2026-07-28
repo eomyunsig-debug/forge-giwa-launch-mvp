@@ -7,6 +7,7 @@ import { Link } from "react-router";
 import { fetchLaunches } from "../api";
 import { AsyncBoundary, DataFreshness, LaunchCard } from "../components";
 import { appBrand, isLocalFixture, isPublicDemo } from "../config";
+import { publicDemoLaunch } from "../publicDemoSnapshot";
 
 const feedFilters = [
   "신규 런치",
@@ -70,7 +71,7 @@ export function HomePage() {
               className="forge-button forge-button--primary"
               to={
                 isPublicDemo
-                  ? `/token/31337/0x8c8519cf76d0427e4d936183b9b10018c11cb3ba`
+                  ? `/token/${publicDemoLaunch.chainId.toString()}/${publicDemoLaunch.tokenAddress}`
                   : "/create"
               }
             >

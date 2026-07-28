@@ -231,10 +231,90 @@ interface PriceFraction {
   denominator: bigint;
 }
 
+interface TradePriceSummary {
+  low: PriceFraction;
+  high: PriceFraction;
+  changeBps: number | null;
+}
+
 function comparePrice(left: PriceFraction, right: PriceFraction): number {
   const difference =
     left.numerator * right.denominator - right.numerator * left.denominator;
   return difference < 0n ? -1 : difference > 0n ? 1 : 0;
+}
+
+function roundedRatio(numerator: bigint, denominator: bigint): bigint {
+  return (numerator + denominator / 2n) / denominator;
+}
+
+function formatHundredths(value: bigint): string {
+  const whole = value / 100n;
+  const fraction = (value % 100n)
+    .toString()
+    .padStart(2, "0")
+    .replace(/0+$/, "");
+  return fraction ? `${whole.toString()}.${fraction}` : whole.toString();
+}
+
+export function formatInverseTradePrice(
+  nativeAmount: string,
+  tokenAmount: string,
+): string | null {
+  const native = BigInt(nativeAmount);
+  const token = BigInt(tokenAmount);
+  if (native <= 0n || token <= 0n) return null;
+
+  const compactUnits = [
+    { divisor: 100_000_000n, suffix: "억" },
+    { divisor: 10_000n, suffix: "만" },
+  ] as const;
+  for (const unit of compactUnits) {
+    if (token >= native * unit.divisor) {
+      const hundredths = roundedRatio(token * 100n, native * unit.divisor);
+      return `${formatHundredths(hundredths)}${unit.suffix}`;
+    }
+  }
+
+  const scale = 1_000_000n;
+  const scaled = roundedRatio(token * scale, native);
+  const whole = scaled / scale;
+  const fraction = (scaled % scale)
+    .toString()
+    .padStart(6, "0")
+    .replace(/0+$/, "");
+  return fraction ? `${whole.toString()}.${fraction}` : whole.toString();
+}
+
+export function summarizeTradePrices(
+  trades: Trade[],
+): TradePriceSummary | null {
+  const prices = trades.flatMap((trade): PriceFraction[] => {
+    const numerator = BigInt(trade.nativeAmount);
+    const denominator = BigInt(trade.tokenAmount);
+    return numerator > 0n && denominator > 0n
+      ? [{ numerator, denominator }]
+      : [];
+  });
+  if (prices.length === 0) return null;
+
+  const low = prices.reduce((value, price) =>
+    comparePrice(price, value) < 0 ? price : value,
+  );
+  const high = prices.reduce((value, price) =>
+    comparePrice(price, value) > 0 ? price : value,
+  );
+  const difference =
+    high.numerator * low.denominator - low.numerator * high.denominator;
+  const relativeDenominator = low.numerator * high.denominator;
+  const rawChangeBps =
+    relativeDenominator > 0n
+      ? roundedRatio(difference * 10_000n, relativeDenominator)
+      : null;
+  const changeBps =
+    rawChangeBps != null && rawChangeBps <= BigInt(Number.MAX_SAFE_INTEGER)
+      ? Number(rawChangeBps)
+      : null;
+  return { low, high, changeBps };
 }
 
 export function relativeTradePrices(trades: Trade[]): number[] {
@@ -274,8 +354,17 @@ export function relativeTradePrices(trades: Trade[]): number[] {
   });
 }
 
-export function PriceChart({ trades }: { trades: Trade[] }) {
+export function PriceChart({
+  trades,
+  symbol = "토큰",
+  nativeSymbol = targetChain.nativeCurrency.symbol,
+}: {
+  trades: Trade[];
+  symbol?: string;
+  nativeSymbol?: string;
+}) {
   const relativePrices = relativeTradePrices(trades);
+  const summary = summarizeTradePrices(trades);
   if (relativePrices.length < 2) {
     return (
       <div className="chart-empty">
@@ -297,6 +386,32 @@ export function PriceChart({ trades }: { trades: Trade[] }) {
     .join(" ");
   return (
     <figure className="price-chart">
+      {summary ? (
+        <div className="price-chart__range">
+          <span>
+            토큰 저점
+            <strong>
+              1 {nativeSymbol} ≈{" "}
+              {formatInverseTradePrice(
+                summary.low.numerator.toString(),
+                summary.low.denominator.toString(),
+              )}{" "}
+              {symbol}
+            </strong>
+          </span>
+          <span>
+            토큰 고점
+            <strong>
+              1 {nativeSymbol} ≈{" "}
+              {formatInverseTradePrice(
+                summary.high.numerator.toString(),
+                summary.high.denominator.toString(),
+              )}{" "}
+              {symbol}
+            </strong>
+          </span>
+        </div>
+      ) : null}
       <svg
         role="img"
         aria-label={`실제 거래 ${relativePrices.length}건으로 계산한 상대 가격 차트`}
@@ -310,7 +425,13 @@ export function PriceChart({ trades }: { trades: Trade[] }) {
         />
       </svg>
       <figcaption>
-        실제 인덱싱 체결 기준 · 보간 또는 모의 데이터 없음
+        <span>실제 인덱싱 체결 기준 · 보간 또는 모의 데이터 없음</span>
+        <strong>
+          체결 {relativePrices.length}건 · 저점 대비{" "}
+          {summary?.changeBps == null
+            ? "—"
+            : `+${formatBps(summary.changeBps)}`}
+        </strong>
       </figcaption>
     </figure>
   );

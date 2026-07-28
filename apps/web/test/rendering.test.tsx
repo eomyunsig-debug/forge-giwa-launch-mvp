@@ -2,7 +2,12 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { MemoryRouter } from "react-router";
 
-import { LaunchCard, PriceChart } from "../src/components";
+import {
+  formatInverseTradePrice,
+  LaunchCard,
+  PriceChart,
+  summarizeTradePrices,
+} from "../src/components";
 import type { LaunchSummary, Trade } from "@forge/shared";
 
 const launch: LaunchSummary = {
@@ -68,6 +73,47 @@ describe("honest missing-data rendering", () => {
     render(<PriceChart trades={trades} />);
     expect(screen.getByRole("img")).toHaveAccessibleName(/실제 거래 2건/);
     expect(screen.getByText(/모의 데이터 없음/)).toBeInTheDocument();
+    expect(screen.getByText(/저점 대비/)).toBeInTheDocument();
+  });
+
+  it("renders retail-readable inverse prices and an exact range", () => {
+    expect(
+      formatInverseTradePrice(
+        "400000000000000000",
+        "133446943562853594590865185",
+      ),
+    ).toBe("3.34억");
+
+    const trades: Trade[] = [
+      {
+        chainId: 31_337,
+        tokenAddress: launch.tokenAddress,
+        poolAddress: launch.poolAddress,
+        transactionHash: `0x${"1".padStart(64, "0")}`,
+        logIndex: 0,
+        traderAddress: launch.creatorAddress,
+        side: "buy",
+        nativeAmount: "1",
+        tokenAmount: "100",
+        blockNumber: "1",
+        blockTimestamp: new Date(0).toISOString(),
+      },
+      {
+        chainId: 31_337,
+        tokenAddress: launch.tokenAddress,
+        poolAddress: launch.poolAddress,
+        transactionHash: `0x${"2".padStart(64, "0")}`,
+        logIndex: 0,
+        traderAddress: launch.creatorAddress,
+        side: "buy",
+        nativeAmount: "2",
+        tokenAmount: "100",
+        blockNumber: "2",
+        blockTimestamp: new Date(1_000).toISOString(),
+      },
+    ];
+
+    expect(summarizeTradePrices(trades)).toMatchObject({ changeBps: 10_000 });
   });
 
   it("preserves sub-nano price moves and a final decline in the chart", () => {

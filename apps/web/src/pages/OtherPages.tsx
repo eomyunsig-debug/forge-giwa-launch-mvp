@@ -14,6 +14,7 @@ import { Link, useParams } from "react-router";
 import { fetchCreator, fetchPortfolio } from "../api";
 import { DataFreshness, LaunchCard } from "../components";
 import { targetChain } from "../config";
+import { publicDemoLaunch } from "../publicDemoSnapshot";
 import { useWallet } from "../wallet";
 
 const client = createPublicClient({
@@ -67,7 +68,7 @@ export function PublicDemoActionPage({
       <div className="hero__actions">
         <Link
           className="forge-button forge-button--primary"
-          to="/token/31337/0x8c8519cf76d0427e4d936183b9b10018c11cb3ba"
+          to={`/token/${publicDemoLaunch.chainId}/${publicDemoLaunch.tokenAddress}`}
         >
           기록된 런치 보기
         </Link>
