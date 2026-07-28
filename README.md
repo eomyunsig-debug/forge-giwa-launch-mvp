@@ -140,7 +140,8 @@ Playwright owns an ephemeral local chain and exercises create, index, feed,
 detail, buy, sell, balance/trade reconciliation, refresh persistence, and the
 375×812, 430×932, and 1440×900 viewports. It also checks actual route
 entry/exit state, inert outgoing content, main-focus restoration,
-reduced-motion behavior, touch targets, and horizontal overflow.
+reduced-motion behavior, delayed-route fallbacks, mid-quote focus ownership,
+public-demo reading order, touch targets, and horizontal overflow.
 
 The exact executed results and screenshot paths are recorded in
 [`verification-report.md`](docs/giwa-launch/verification-report.md).

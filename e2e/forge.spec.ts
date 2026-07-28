@@ -303,6 +303,37 @@ test("로컬 생성 → 매수 → 정확한 승인 매도 → 인덱서 복원"
   expect(riskLinkIndex).toBeGreaterThan(buyControlIndex);
   expect(creatorLinkIndex).toBeGreaterThan(riskLinkIndex);
 
+  let delayedQuoteCall = false;
+  await page.route("http://127.0.0.1:8545/**", async (route) => {
+    const body = route.request().postDataJSON() as { method?: unknown } | null;
+    if (!delayedQuoteCall && body?.method === "eth_call") {
+      delayedQuoteCall = true;
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 1_200));
+    }
+    await route.continue();
+  });
+  await selectAnvilAccount(page, 1);
+  const editableAmount = page.getByTestId("trade-amount");
+  await editableAmount.fill("0.02");
+  await page
+    .locator(".trade-action-motion .motion-swap__incoming")
+    .getByTestId("get-quote")
+    .click();
+  await expect(
+    page.locator(".transaction-state[data-status='quote-loading']"),
+  ).toBeVisible();
+  await editableAmount.fill("0.021");
+  await expect(editableAmount).toBeFocused();
+  await page.waitForTimeout(1_300);
+  await expect(editableAmount).toBeFocused();
+  await expect(
+    page
+      .locator(".trade-action-motion .motion-swap__incoming")
+      .getByTestId("get-quote"),
+  ).toBeVisible();
+  expect(delayedQuoteCall).toBe(true);
+  await page.unroute("http://127.0.0.1:8545/**");
+
   const buyAmounts = Array.from({ length: 12 }, () => "0.02");
   for (const [index, buyAmount] of buyAmounts.entries()) {
     await selectAnvilAccount(page, index + 1);

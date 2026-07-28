@@ -12,7 +12,7 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
 | Prettier formatting          | passed                                                           |
 | ESLint                       | passed                                                           |
 | TypeScript strict typecheck  | passed across 7 workspace projects and tools                     |
-| Vitest                       | 127 passed, 0 failed across 20 files; web 57, SDK 21, indexer 37 |
+| Vitest                       | 128 passed, 0 failed across 21 files; web 58, SDK 21, indexer 37 |
 | Foundry                      | 54 passed, 0 failed across 13 suites                             |
 | Foundry fuzz                 | 11 properties, 256 cases per property                            |
 | Foundry invariants           | 6 invariants, 128 runs × 32 calls, 0 reverts                     |
@@ -21,11 +21,11 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
 | ABI export                   | 8 contract ABIs and one manifest generated                       |
 | Deployment manifests         | 2 validated; incomplete, zero, wrong-chain probes rejected       |
 | Production build             | passed; source maps disabled                                     |
-| Secret scan                  | passed across 188 files                                          |
+| Secret scan                  | passed across 189 files                                          |
 | Dependency audit             | no known vulnerabilities                                         |
 | Public-demo production build | passed                                                           |
 | Public response protections  | CSP, nosniff, frame, referrer, and permissions via worker proxy  |
-| Playwright                   | 2 end-to-end scenarios passed in 2.1 minutes                     |
+| Playwright                   | 2 end-to-end scenarios passed in 2.2 minutes                     |
 
 Slither and `git-secrets` were not installed in the execution environment.
 Their absence did not replace the Foundry suites or repository secret scanner.
@@ -72,8 +72,11 @@ at 261px, before the read-only explanation at 766px.
 The motion regression suite proves that route exit content remains present only
 for the 160ms visual handoff while being `inert` and `aria-hidden`, rapid
 back-navigation cannot strand an invisible route, and changing
-`prefers-reduced-motion` removes outgoing content immediately. It also checks
-focus restoration from quote to execute, logical token-page focus order,
+`prefers-reduced-motion` removes outgoing content immediately. A deliberately
+delayed lazy route must show a non-interactive loading fallback rather than
+reactivating the previous page. It also checks focus restoration from quote to
+execute without stealing focus after a mid-request amount edit, public-demo
+chart/metric/disclosure DOM order, logical token-page focus order,
 44px-or-larger mobile targets, and 721–1050px navigation coverage.
 
 Screenshots:

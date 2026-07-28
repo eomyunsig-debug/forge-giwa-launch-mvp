@@ -110,9 +110,10 @@ export class RuntimeErrorBoundary extends Component<
 function ForgeRoutes({ location }: { location: Location }) {
   return (
     <Suspense
+      key={location.key}
       fallback={
         <div
-          className="page skeleton-card"
+          className="page skeleton-card route-loading"
           role="status"
           aria-label="페이지 불러오는 중"
         />

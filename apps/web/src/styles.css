@@ -2383,18 +2383,13 @@ input[type="range"] {
   }
 
   .token-page--public-demo .chart-card .section-heading {
-    order: 0;
+    margin-bottom: 0;
   }
 
   .token-page--public-demo .chart-card .metric-strip {
-    order: 1;
     padding: 0 0 16px;
     border-top: 0;
     border-bottom: 1px solid var(--line);
-  }
-
-  .token-page--public-demo .chart-card .price-chart {
-    order: 2;
   }
 
   .profile-header {

@@ -449,6 +449,7 @@ function TradePanel({
   }
 
   function invalidateQuote() {
+    restoreActionFocus.current = false;
     clearQuote();
     if (!executionInFlight.current && txHash == null) {
       setStatus("idle");
@@ -926,6 +927,22 @@ function TradePanel({
   const actionBusy = status === "quote-loading" || submissionLocked;
 
   useEffect(() => {
+    const cancelFocusRestore = (event: FocusEvent) => {
+      if (
+        !restoreActionFocus.current ||
+        !(event.target instanceof Node) ||
+        actionIncomingRef.current?.contains(event.target)
+      ) {
+        return;
+      }
+      restoreActionFocus.current = false;
+    };
+    document.addEventListener("focusin", cancelFocusRestore, true);
+    return () =>
+      document.removeEventListener("focusin", cancelFocusRestore, true);
+  }, []);
+
+  useEffect(() => {
     if (!restoreActionFocus.current || actionBusy) return;
     const action =
       actionIncomingRef.current?.querySelector<HTMLButtonElement>("button");
@@ -1263,6 +1280,94 @@ export function TokenPage() {
     (fact) => fact.status === "recorded-confirmed",
   );
   const explorerAvailable = Boolean(targetChain.blockExplorers?.default.url);
+  const marketMetrics = (
+    <div className="metric-strip">
+      <Metric
+        label="실제 유동성"
+        value={
+          launch.actualLiquidityNative == null
+            ? "—"
+            : `${formatUnits(BigInt(launch.actualLiquidityNative))} ${targetChain.nativeCurrency.symbol}`
+        }
+      />
+      <Metric
+        label="거래 가능 일반 물량 · 풀·락커·베스팅·소각·zero 제외"
+        value={
+          launch.circulatingSupply == null
+            ? "데이터 수집 중"
+            : formatUnits(BigInt(launch.circulatingSupply), 18, true)
+        }
+      />
+      <Metric
+        label="고유 일반 홀더"
+        value={launch.uniqueHolders?.toLocaleString("ko-KR") ?? "—"}
+      />
+      <Metric
+        label={`최근 체결가 · 표시 체결 ${launch.trades.length}건 기준`}
+        value={
+          recentPrice == null
+            ? "—"
+            : `1 ${targetChain.nativeCurrency.symbol} ≈ ${recentPrice} ${launch.symbol}`
+        }
+      />
+    </div>
+  );
+
+  function renderTradeSidebar(currentLaunch: LaunchDetail) {
+    return (
+      <aside className="token-sidebar token-sidebar--trade">
+        <div className="token-sidebar__sticky motion-reveal motion-reveal--2">
+          {isPublicDemo ? (
+            <div className="glass-panel public-demo-trade">
+              <Badge status="muted">READ ONLY</Badge>
+              <h2>거래는 로컬 검증에서만 실행했습니다</h2>
+              <p>
+                공개 URL에서는 지갑 연결, 견적, 승인, 매수·매도 요청을 모두
+                차단합니다. 표시된 값은 기록 시점까지 수집한 로컬 Anvil 인덱서
+                결과이며 GIWA 시장 데이터가 아닙니다.
+              </p>
+              <div className="metric-strip">
+                <Metric
+                  label="기록된 거래"
+                  value={currentLaunch.trades.length}
+                />
+                <Metric
+                  label="기록된 유동성"
+                  value={
+                    currentLaunch.actualLiquidityNative == null
+                      ? "—"
+                      : `${formatUnits(BigInt(currentLaunch.actualLiquidityNative))} tETH`
+                  }
+                />
+              </div>
+              <div className="public-demo-trade__caution">
+                <strong>거래 전 확인</strong>
+                <p>
+                  Liquidity Locked는 표시된 LP 원금의 인출 제한만 의미합니다.
+                  가격·AMM 운영·창작자 행동을 보증하지 않습니다.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <TradePanel
+              key={`${currentLaunch.chainId}:${currentLaunch.tokenAddress}`}
+              launch={currentLaunch}
+              onReconcile={async () => query.refetch()}
+            />
+          )}
+          {!isPublicDemo ? (
+            <div className="glass-panel caution-card">
+              <strong>거래 전 확인</strong>
+              <p>
+                Liquidity Locked는 표시된 LP 원금의 인출 제한만 의미합니다.
+                가격·AMM 운영·창작자 행동을 보증하지 않습니다.
+              </p>
+            </div>
+          ) : null}
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <section
@@ -1324,54 +1429,7 @@ export function TokenPage() {
       </MotionPresence>
 
       <div className="token-layout">
-        <aside className="token-sidebar token-sidebar--trade">
-          <div className="token-sidebar__sticky motion-reveal motion-reveal--2">
-            {isPublicDemo ? (
-              <div className="glass-panel public-demo-trade">
-                <Badge status="muted">READ ONLY</Badge>
-                <h2>거래는 로컬 검증에서만 실행했습니다</h2>
-                <p>
-                  공개 URL에서는 지갑 연결, 견적, 승인, 매수·매도 요청을 모두
-                  차단합니다. 표시된 값은 기록 시점까지 수집한 로컬 Anvil 인덱서
-                  결과이며 GIWA 시장 데이터가 아닙니다.
-                </p>
-                <div className="metric-strip">
-                  <Metric label="기록된 거래" value={launch.trades.length} />
-                  <Metric
-                    label="기록된 유동성"
-                    value={
-                      launch.actualLiquidityNative == null
-                        ? "—"
-                        : `${formatUnits(BigInt(launch.actualLiquidityNative))} tETH`
-                    }
-                  />
-                </div>
-                <div className="public-demo-trade__caution">
-                  <strong>거래 전 확인</strong>
-                  <p>
-                    Liquidity Locked는 표시된 LP 원금의 인출 제한만 의미합니다.
-                    가격·AMM 운영·창작자 행동을 보증하지 않습니다.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <TradePanel
-                key={`${launch.chainId}:${launch.tokenAddress}`}
-                launch={launch}
-                onReconcile={async () => query.refetch()}
-              />
-            )}
-            {!isPublicDemo ? (
-              <div className="glass-panel caution-card">
-                <strong>거래 전 확인</strong>
-                <p>
-                  Liquidity Locked는 표시된 LP 원금의 인출 제한만 의미합니다.
-                  가격·AMM 운영·창작자 행동을 보증하지 않습니다.
-                </p>
-              </div>
-            ) : null}
-          </div>
-        </aside>
+        {!isPublicDemo ? renderTradeSidebar(launch) : null}
         <div className="token-content">
           <section className="glass-panel chart-card motion-reveal motion-reveal--2">
             <div className="section-heading section-heading--compact">
@@ -1386,42 +1444,16 @@ export function TokenPage() {
                   : `+${formatBps(priceSummary.changeBps)}`}
               </span>
             </div>
+            {isPublicDemo ? marketMetrics : null}
             <PriceChart
               trades={launch.trades}
               symbol={launch.symbol}
               nativeSymbol={targetChain.nativeCurrency.symbol}
             />
-            <div className="metric-strip">
-              <Metric
-                label="실제 유동성"
-                value={
-                  launch.actualLiquidityNative == null
-                    ? "—"
-                    : `${formatUnits(BigInt(launch.actualLiquidityNative))} ${targetChain.nativeCurrency.symbol}`
-                }
-              />
-              <Metric
-                label="거래 가능 일반 물량 · 풀·락커·베스팅·소각·zero 제외"
-                value={
-                  launch.circulatingSupply == null
-                    ? "데이터 수집 중"
-                    : formatUnits(BigInt(launch.circulatingSupply), 18, true)
-                }
-              />
-              <Metric
-                label="고유 일반 홀더"
-                value={launch.uniqueHolders?.toLocaleString("ko-KR") ?? "—"}
-              />
-              <Metric
-                label={`최근 체결가 · 표시 체결 ${launch.trades.length}건 기준`}
-                value={
-                  recentPrice == null
-                    ? "—"
-                    : `1 ${targetChain.nativeCurrency.symbol} ≈ ${recentPrice} ${launch.symbol}`
-                }
-              />
-            </div>
+            {!isPublicDemo ? marketMetrics : null}
           </section>
+
+          {isPublicDemo ? renderTradeSidebar(launch) : null}
 
           <section className="glass-panel facts-card motion-reveal motion-reveal--3">
             <div className="section-heading section-heading--compact">

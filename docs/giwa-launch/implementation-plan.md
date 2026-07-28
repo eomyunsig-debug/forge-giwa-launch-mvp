@@ -207,7 +207,12 @@ ordinary-holder count, recent price, and the chart before the longer read-only
 explanation. Risk education groups contract-enforced properties separately
 from unsupported or unguaranteed claims. Playwright verifies the route exit
 contract, focus restoration, reduced-motion behavior, touch targets, and
-overflow.
+overflow. Lazy route boundaries are keyed to the displayed location so a slow
+chunk can only expose a non-interactive loading fallback, never an active page
+from the previous URL. Quote focus restoration is cancelled when a user edits
+or moves focus mid-request, and the public token detail keeps its chart,
+metrics, read-only disclosure, and risk facts in the same visual and assistive
+technology order.
 
 An independent final audit then caught and closed accidental-chain deployment,
 GIWA finality/event-decoder mismatch, recipient-spoofable buyer counts,
