@@ -1263,8 +1263,7 @@ input[type="range"] {
 }
 
 .token-content {
-  display: grid;
-  gap: 18px;
+  display: contents;
 }
 
 .token-content > .glass-panel {
@@ -1272,11 +1271,32 @@ input[type="range"] {
 }
 
 .token-sidebar {
-  display: grid;
-  gap: 14px;
+  display: contents;
+}
+
+.chart-card {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.facts-card {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.distribution-card {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+.vesting-card {
+  grid-column: 1;
+  grid-row: 4;
 }
 
 .token-sidebar__sticky {
+  grid-column: 2;
+  grid-row: 1;
   position: sticky;
   top: 104px;
   display: grid;
@@ -1284,6 +1304,9 @@ input[type="range"] {
 }
 
 .token-sidebar .evidence-card {
+  grid-column: 2;
+  grid-row: 4;
+  align-self: stretch;
   padding: 20px;
 }
 
@@ -1906,20 +1929,34 @@ input[type="range"] {
     position: static;
   }
 
-  .token-content {
+  .chart-card {
+    grid-column: 1;
     grid-row: 2;
   }
 
-  .token-sidebar {
-    display: contents;
+  .facts-card {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .distribution-card {
+    grid-column: 1;
+    grid-row: 4;
+  }
+
+  .vesting-card {
+    grid-column: 1;
+    grid-row: 5;
   }
 
   .token-sidebar__sticky {
+    grid-column: 1;
     grid-row: 1;
   }
 
   .token-sidebar .evidence-card {
-    grid-row: 3;
+    grid-column: 1;
+    grid-row: 6;
   }
 
   .profile-header {
