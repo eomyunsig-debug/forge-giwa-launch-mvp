@@ -89,7 +89,7 @@ async function main() {
   }
 
   for (const path of [
-    "/og.jpg",
+    "/og-gasok.png",
     "/favicon.svg",
     scriptPath,
     `/token/${recorded.data.chainId}/${recorded.data.tokenAddress}`,

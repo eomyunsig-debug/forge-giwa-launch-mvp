@@ -9,8 +9,9 @@
     "ammAdapter": null
   },
   "ammIntegration": {
-    "kind": "unsupported",
-    "integrationApproved": false
+    "kind": "forge-self-hosted-constant-product-testnet",
+    "integrationApproved": false,
+    "testOnly": true
   },
-  "blocker": "No approved, reviewed GIWA testnet AMM supports Forge's permissionless new-token pool and permanently locked ERC-20 LP flow, and no user-controlled funded GIWA Sepolia wallet was supplied. The adapter remains disabled; no addresses are invented."
+  "blocker": "No GIWA Sepolia broadcast has been authorized and no deployment addresses or receipts exist. The self-hosted adapter path is explicitly test-only and unaudited; deployment still requires a funded user-controlled key, final admin and fee inputs, simulation, explorer source verification, and a launch/buy/sell reconciliation smoke."
 }

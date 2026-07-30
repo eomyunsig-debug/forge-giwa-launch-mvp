@@ -42,6 +42,10 @@ const localPoolAbi = parseAbi([
   "event Swap(address indexed recipient,bool indexed nativeToToken,uint256 amountIn,uint256 amountOut,uint256 tokenReserve,uint256 nativeReserve)",
   "event ReservesSynced(uint256 tokenReserve,uint256 nativeReserve)",
 ]);
+const giwaSelfHostedPoolAbi = parseAbi([
+  "event Swap(address indexed recipient,bool indexed nativeToToken,uint256 amountIn,uint256 amountOut,uint256 tokenReserve,uint256 nativeReserve)",
+  "event ReservesSynced(uint256 tokenReserve,uint256 nativeReserve)",
+]);
 const v2PairAbi = parseAbi([
   "event Swap(address indexed sender,uint256 amount0In,uint256 amount1In,uint256 amount0Out,uint256 amount1Out,address indexed to)",
   "event Sync(uint112 reserve0,uint112 reserve1)",
@@ -78,23 +82,33 @@ export interface ForgeRpcBlockSourceOptions {
 }
 
 export type FinalityTag = "latest" | "safe" | "finalized";
-export type PoolEventKind = "local" | "v2";
+export type PoolEventKind = "local" | "v2" | "giwa-self-hosted-test-only";
 
 export function resolvePoolEventKind(
   chainId: number,
   configured?: PoolEventKind,
 ): PoolEventKind {
-  const expected =
-    chainId === 31_337 ? "local" : chainId === 91_342 ? "v2" : null;
-  if (expected === null) {
+  if (chainId !== 31_337 && chainId !== 91_342) {
     throw new Error(`Unsupported Forge indexer chain: ${chainId.toString()}`);
   }
-  if (configured !== undefined && configured !== expected) {
+
+  const defaultKind: PoolEventKind = chainId === 31_337 ? "local" : "v2";
+  if (configured === undefined) return defaultKind;
+
+  const accepted =
+    chainId === 31_337
+      ? configured === "local"
+      : configured === "v2" || configured === "giwa-self-hosted-test-only";
+  if (!accepted) {
+    const expected =
+      chainId === 31_337
+        ? "local"
+        : "v2 or explicitly opted-in giwa-self-hosted-test-only";
     throw new Error(
       `Pool event kind ${configured} is invalid for chain ${chainId.toString()}; expected ${expected}`,
     );
   }
-  return expected;
+  return configured;
 }
 
 export interface V2PoolOrientation {
@@ -423,47 +437,9 @@ export class ForgeRpcBlockSource implements RpcBlockSource {
           if (!orientation) return null;
           return decodeV2PairLog(log, address, orientation);
         }
-        try {
-          const decoded = decodeEventLog({
-            abi: localPoolAbi,
-            eventName: "Swap",
-            data: log.data,
-            topics: log.topics,
-            strict: true,
-          });
-          return {
-            type: "TradeExecuted",
-            tokenAddress: poolToken,
-            poolAddress: address,
-            traderAddress: normalizeAddress(decoded.args.recipient),
-            side: decoded.args.nativeToToken ? "buy" : "sell",
-            nativeAmount: (decoded.args.nativeToToken
-              ? decoded.args.amountIn
-              : decoded.args.amountOut
-            ).toString(),
-            tokenAmount: (decoded.args.nativeToToken
-              ? decoded.args.amountOut
-              : decoded.args.amountIn
-            ).toString(),
-            nativeReserve: decoded.args.nativeReserve.toString(),
-            tokenReserve: decoded.args.tokenReserve.toString(),
-          };
-        } catch {
-          const synced = decodeEventLog({
-            abi: localPoolAbi,
-            eventName: "ReservesSynced",
-            data: log.data,
-            topics: log.topics,
-            strict: true,
-          });
-          return {
-            type: "LiquidityUpdated",
-            tokenAddress: poolToken,
-            poolAddress: address,
-            nativeReserve: synced.args.nativeReserve.toString(),
-            tokenReserve: synced.args.tokenReserve.toString(),
-          };
-        }
+        return this.poolEventKind === "giwa-self-hosted-test-only"
+          ? decodeGiwaSelfHostedPoolLog(log, address, poolToken)
+          : decodeLocalPoolLog(log, address, poolToken);
       }
       if (vaults.has(address)) {
         const decoded = decodeEventLog({
@@ -575,6 +551,78 @@ export class ForgeRpcBlockSource implements RpcBlockSource {
     } catch {
       return null;
     }
+  }
+}
+
+export function decodeLocalPoolLog(
+  log: Pick<Log, "data" | "topics">,
+  poolAddress: string,
+  tokenAddress: string,
+): DecodedEvent | null {
+  return decodeForgeConstantProductPoolLog(
+    log,
+    poolAddress,
+    tokenAddress,
+    localPoolAbi,
+  );
+}
+
+export function decodeGiwaSelfHostedPoolLog(
+  log: Pick<Log, "data" | "topics">,
+  poolAddress: string,
+  tokenAddress: string,
+): DecodedEvent | null {
+  return decodeForgeConstantProductPoolLog(
+    log,
+    poolAddress,
+    tokenAddress,
+    giwaSelfHostedPoolAbi,
+  );
+}
+
+function decodeForgeConstantProductPoolLog(
+  log: Pick<Log, "data" | "topics">,
+  poolAddress: string,
+  tokenAddress: string,
+  abi: typeof localPoolAbi,
+): DecodedEvent | null {
+  try {
+    const decoded = decodeEventLog({
+      abi,
+      data: log.data,
+      topics: log.topics,
+      strict: true,
+    });
+    if (decoded.eventName === "Swap") {
+      return {
+        type: "TradeExecuted",
+        tokenAddress: normalizeAddress(tokenAddress),
+        poolAddress: normalizeAddress(poolAddress),
+        // getBlock replaces the recipient with the canonical transaction sender
+        // before persistence so distinct-buyer metrics cannot be recipient-spoofed.
+        traderAddress: normalizeAddress(decoded.args.recipient),
+        side: decoded.args.nativeToToken ? "buy" : "sell",
+        nativeAmount: (decoded.args.nativeToToken
+          ? decoded.args.amountIn
+          : decoded.args.amountOut
+        ).toString(),
+        tokenAmount: (decoded.args.nativeToToken
+          ? decoded.args.amountOut
+          : decoded.args.amountIn
+        ).toString(),
+        nativeReserve: decoded.args.nativeReserve.toString(),
+        tokenReserve: decoded.args.tokenReserve.toString(),
+      };
+    }
+    return {
+      type: "LiquidityUpdated",
+      tokenAddress: normalizeAddress(tokenAddress),
+      poolAddress: normalizeAddress(poolAddress),
+      nativeReserve: decoded.args.nativeReserve.toString(),
+      tokenReserve: decoded.args.tokenReserve.toString(),
+    };
+  } catch {
+    return null;
   }
 }
 

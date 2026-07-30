@@ -1,6 +1,7 @@
 # GIWA Sepolia smoke record
 
-Checked at: 2026-07-28 KST
+- Network check: 2026-07-28 KST
+- Test-only path simulation update: 2026-07-30 KST
 
 This record separates read-only network verification from state-changing
 deployment. No mainnet request, private key, signature, token launch, or
@@ -54,17 +55,30 @@ constants.
 
 ## State-changing smoke status
 
-GIWA deployment and buy/sell smoke were not run. There are two independent
-blockers:
+GIWA deployment and buy/sell broadcast were not run. There are two independent
+boundaries:
 
-1. Forge was not given a user-controlled, funded GIWA Sepolia wallet. The app
-   never asks for or stores a private key; signing must remain in the user's
-   browser wallet.
-2. No official or sufficiently reviewed GIWA AMM deployment supports Forge's
-   required permissionless new-token pool, initial liquidity, quote, swap, and
-   verifiable permanent LP-lock flow. The only live candidate found is the
-   third-party OSIGE CLAMM described in `amm-decision.md`.
+1. Forge was not given a user-controlled, funded GIWA Sepolia deployer. The
+   app never asks for or stores a private key. The current Foundry deployment
+   script does require a dedicated testnet deployer key through the process
+   environment, so it must be injected from a secure local secret source and
+   never pasted into chat, committed, or stored in a shared/plaintext `.env`.
+   Product launch and trade actions after deployment remain browser-wallet
+   signed.
+2. No official or sufficiently reviewed external GIWA AMM deployment supports
+   Forge's required permissionless new-token pool, initial liquidity, quote,
+   swap, and verifiable permanent LP-lock flow. The only live external
+   candidate found is the third-party OSIGE CLAMM described in
+   `amm-decision.md`.
 
-Accordingly, `packages/contracts/deployments/giwa-testnet.json` contains no
-invented addresses, and the GIWA adapter remains fail-closed. The complete
-state-changing flow is tested against local Anvil only.
+Forge now includes an explicit `USE_SELF_HOSTED_TEST_AMM=true` path for its
+chain-gated, self-hosted GIWA Sepolia constant-product test AMM. The full
+Foundry suite passed 69/69. The seven GIWA flow tests passed again on a
+read-only fork of the official public RPC, and the deployment-mode branch
+passed 1/1 on that fork. These were local EVM simulations without `--broadcast`;
+they produced no GIWA transaction, address, receipt, or explorer verification.
+
+Accordingly, `packages/contracts/deployments/giwa-testnet.json` still contains
+null addresses and `deployed: false`. The default external adapter remains
+fail-closed, and the complete state-changing product flow has been executed
+only against local Anvil.

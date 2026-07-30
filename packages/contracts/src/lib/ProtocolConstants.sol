@@ -11,6 +11,7 @@ library ProtocolConstants {
     uint48 internal constant MAX_TRANSACTION_DEADLINE_WINDOW = 1 hours;
     uint256 internal constant MAX_CREATION_FEE = 10 ether;
     uint16 internal constant LOCAL_SWAP_FEE_BPS = 30;
+    uint16 internal constant GIWA_TESTNET_SWAP_FEE_BPS = 30;
 
     uint256 internal constant MAX_NAME_BYTES = 64;
     uint256 internal constant MIN_SYMBOL_BYTES = 2;

@@ -40,6 +40,7 @@ async function main(): Promise<void> {
 
   const address = `0x${"1".repeat(40)}`;
   const zeroAddress = `0x${"0".repeat(40)}`;
+  const bytes32 = `0x${"2".repeat(64)}`;
   const validGiwaDeployment = {
     schemaVersion: 1,
     network: "giwa-testnet",
@@ -53,6 +54,19 @@ async function main(): Promise<void> {
     ammIntegration: {
       kind: "uniswap-v2-compatible-candidate",
       integrationApproved: true,
+    },
+    deploymentEvidence: {
+      deployedBlock: 1,
+      broadcastTxHashes: [bytes32],
+      adapterId: bytes32,
+      protocolConfigRuntimeCodeHash: bytes32,
+      launchFactoryRuntimeCodeHash: bytes32,
+      ammAdapterRuntimeCodeHash: bytes32,
+      verifiedSourceUrls: [
+        "https://sepolia-explorer.giwa.io/address/protocol",
+        "https://sepolia-explorer.giwa.io/address/factory",
+        "https://sepolia-explorer.giwa.io/address/adapter",
+      ],
     },
   };
   assertValid(validGiwaDeployment, "synthetic complete GIWA deployment");
@@ -90,6 +104,69 @@ async function main(): Promise<void> {
   assertInvalid(
     { ...validGiwaDeployment, chainId: 1 },
     "wrong GIWA chain probe",
+  );
+  const { deploymentEvidence: _deploymentEvidence, ...missingEvidence } =
+    validGiwaDeployment;
+  assertInvalid(
+    missingEvidence,
+    "deployed manifest without transaction and bytecode evidence",
+  );
+  assertInvalid(
+    {
+      ...validGiwaDeployment,
+      deploymentEvidence: {
+        ...validGiwaDeployment.deploymentEvidence,
+        ammAdapterRuntimeCodeHash: "0x1234",
+      },
+    },
+    "deployed manifest with malformed runtime bytecode hash",
+  );
+  const validSelfHostedTestnetDeployment = {
+    ...validGiwaDeployment,
+    ammIntegration: {
+      kind: "forge-self-hosted-constant-product-testnet",
+      integrationApproved: true,
+      testOnly: true,
+    },
+    deploymentEvidence: {
+      ...validGiwaDeployment.deploymentEvidence,
+      adapterId:
+        "0x7cc46dc44520b82e1e4f957c97a99ddaf86723ac155212e8cabe0850adab8567",
+    },
+  };
+  assertValid(
+    validSelfHostedTestnetDeployment,
+    "synthetic self-hosted GIWA testnet deployment",
+  );
+  assertInvalid(
+    {
+      ...validSelfHostedTestnetDeployment,
+      ammIntegration: {
+        ...validSelfHostedTestnetDeployment.ammIntegration,
+        testOnly: false,
+      },
+    },
+    "self-hosted GIWA adapter without test-only disclosure",
+  );
+  assertInvalid(
+    {
+      ...validSelfHostedTestnetDeployment,
+      deploymentEvidence: {
+        ...validSelfHostedTestnetDeployment.deploymentEvidence,
+        adapterId: bytes32,
+      },
+    },
+    "self-hosted GIWA deployment with the wrong adapter identity",
+  );
+  assertInvalid(
+    {
+      ...validSelfHostedTestnetDeployment,
+      ammIntegration: {
+        ...validSelfHostedTestnetDeployment.ammIntegration,
+        integrationApproved: false,
+      },
+    },
+    "deployed but unapproved GIWA integration",
   );
 
   process.stdout.write(

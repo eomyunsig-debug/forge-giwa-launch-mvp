@@ -39,6 +39,7 @@ import {
   summarizeTradePrices,
 } from "../components";
 import { deployment, isPublicDemo, targetChain } from "../config";
+import { useWalletEmbed, withWalletEmbed } from "../embed";
 import { MotionPresence, MotionSwap } from "../motion";
 import { useWallet } from "../wallet";
 
@@ -1229,6 +1230,7 @@ function ReportToken({ launch }: { launch: LaunchDetail }) {
 
 export function TokenPage() {
   const params = useParams();
+  const walletEmbed = useWalletEmbed();
   const chainId = Number(params.chainId);
   const address = params.address ?? "";
   const query = useQuery({
@@ -1260,7 +1262,7 @@ export function TokenPage() {
           주소와 인덱서 상태를 확인하세요. 실패한 응답을 빈 값이나 0으로
           표시하지 않습니다.
         </p>
-        <Link to="/">런치 피드로 돌아가기</Link>
+        <Link to={withWalletEmbed("/", walletEmbed)}>런치 피드로 돌아가기</Link>
       </section>
     );
   }
@@ -1369,9 +1371,58 @@ export function TokenPage() {
     );
   }
 
+  function renderRiskFacts(currentLaunch: LaunchDetail) {
+    return (
+      <section
+        className={`${walletEmbed ? "" : "glass-panel "}facts-card motion-reveal motion-reveal--3`}
+      >
+        <div className="section-heading section-heading--compact">
+          <div>
+            <span className="eyebrow">VERIFIABLE FACTS</span>
+            <h2>위험 사실</h2>
+          </div>
+          <div className="risk-heading__links">
+            {hasRecordedRiskFacts ? (
+              <span>로컬 실행 시 확인 · 공개 URL 재검증 없음</span>
+            ) : null}
+            <Link to={withWalletEmbed("/about/risk", walletEmbed)}>
+              배지 의미 보기 →
+            </Link>
+          </div>
+        </div>
+        <div className="risk-grid motion-stagger">
+          {currentLaunch.riskFacts.map((fact) => (
+            <article className="risk-fact" key={fact.key}>
+              <div>
+                <h3>{fact.label}</h3>
+                <Badge status={riskTone(fact)}>
+                  {fact.status === "confirmed"
+                    ? "확인됨"
+                    : fact.status === "recorded-confirmed"
+                      ? "로컬 실행 시 확인됨"
+                      : fact.status === "not-applicable"
+                        ? "해당 없음"
+                        : fact.status === "caution"
+                          ? "주의"
+                          : fact.status === "high-concentration"
+                            ? "높은 집중도"
+                            : fact.status === "collecting"
+                              ? "데이터 수집 중"
+                              : "검증할 수 없음"}
+                </Badge>
+              </div>
+              <strong>{riskValue(fact, currentLaunch.symbol)}</strong>
+              <p>{fact.explanation}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
-      className={`page token-page${isPublicDemo ? " token-page--public-demo" : ""}`}
+      className={`page token-page${isPublicDemo ? " token-page--public-demo" : ""}${walletEmbed ? " token-page--wallet-embed" : ""}`}
     >
       <div className="token-header motion-reveal motion-reveal--1">
         <div className="token-identity token-identity--large">
@@ -1431,6 +1482,7 @@ export function TokenPage() {
       <div className="token-layout">
         {!isPublicDemo ? renderTradeSidebar(launch) : null}
         <div className="token-content">
+          {isPublicDemo && walletEmbed ? renderTradeSidebar(launch) : null}
           <section className="glass-panel chart-card motion-reveal motion-reveal--2">
             <div className="section-heading section-heading--compact">
               <div>
@@ -1453,48 +1505,32 @@ export function TokenPage() {
             {!isPublicDemo ? marketMetrics : null}
           </section>
 
-          {isPublicDemo ? renderTradeSidebar(launch) : null}
+          {isPublicDemo && !walletEmbed ? renderTradeSidebar(launch) : null}
 
-          <section className="glass-panel facts-card motion-reveal motion-reveal--3">
-            <div className="section-heading section-heading--compact">
-              <div>
-                <span className="eyebrow">VERIFIABLE FACTS</span>
-                <h2>위험 사실</h2>
+          {walletEmbed ? (
+            <details
+              className="wallet-embed-details glass-panel"
+              data-testid="wallet-risk-disclosure"
+            >
+              <summary>
+                <span>
+                  <span className="eyebrow">VERIFIABLE FACTS</span>
+                  <strong>위험 사실 {launch.riskFacts.length}개</strong>
+                </span>
+                <span
+                  className="wallet-embed-details__action"
+                  aria-hidden="true"
+                >
+                  펼쳐 보기
+                </span>
+              </summary>
+              <div className="wallet-embed-details__body">
+                {renderRiskFacts(launch)}
               </div>
-              <div className="risk-heading__links">
-                {hasRecordedRiskFacts ? (
-                  <span>로컬 실행 시 확인 · 공개 URL 재검증 없음</span>
-                ) : null}
-                <Link to="/about/risk">배지 의미 보기 →</Link>
-              </div>
-            </div>
-            <div className="risk-grid motion-stagger">
-              {launch.riskFacts.map((fact) => (
-                <article className="risk-fact" key={fact.key}>
-                  <div>
-                    <h3>{fact.label}</h3>
-                    <Badge status={riskTone(fact)}>
-                      {fact.status === "confirmed"
-                        ? "확인됨"
-                        : fact.status === "recorded-confirmed"
-                          ? "로컬 실행 시 확인됨"
-                          : fact.status === "not-applicable"
-                            ? "해당 없음"
-                            : fact.status === "caution"
-                              ? "주의"
-                              : fact.status === "high-concentration"
-                                ? "높은 집중도"
-                                : fact.status === "collecting"
-                                  ? "데이터 수집 중"
-                                  : "검증할 수 없음"}
-                    </Badge>
-                  </div>
-                  <strong>{riskValue(fact, launch.symbol)}</strong>
-                  <p>{fact.explanation}</p>
-                </article>
-              ))}
-            </div>
-          </section>
+            </details>
+          ) : (
+            renderRiskFacts(launch)
+          )}
 
           <HolderDistribution launch={launch} />
 
@@ -1504,7 +1540,12 @@ export function TokenPage() {
                 <span className="eyebrow">CREATOR VESTING</span>
                 <h2>창작자 배정과 해제</h2>
               </div>
-              <Link to={`/creator/${launch.creatorAddress}`}>
+              <Link
+                to={withWalletEmbed(
+                  `/creator/${launch.creatorAddress}`,
+                  walletEmbed,
+                )}
+              >
                 창작자 프로필 →
               </Link>
             </div>

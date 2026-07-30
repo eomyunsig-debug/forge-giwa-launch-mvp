@@ -136,6 +136,10 @@ code,
   min-height: 100vh;
 }
 
+.app-shell--wallet-embed {
+  --wallet-container-width: 680px;
+}
+
 .testnet-ribbon {
   min-height: 30px;
   display: flex;
@@ -163,6 +167,29 @@ code,
   border-bottom: 1px solid var(--line);
   background: rgba(8, 9, 13, 0.78);
   backdrop-filter: blur(20px) saturate(135%);
+}
+
+.site-header--wallet-embed {
+  min-height: 58px;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  padding-block: 7px;
+  padding-inline: max(14px, calc((100vw - var(--wallet-container-width)) / 2));
+}
+
+.wallet-embed-status {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 10px;
+  font-weight: 750;
+  white-space: nowrap;
 }
 
 .wordmark {
@@ -668,6 +695,27 @@ main:focus {
   align-items: center;
   gap: 56px;
   padding: 48px 0 32px;
+}
+
+.wallet-embed-intro {
+  width: min(var(--wallet-container-width), calc(100% - 24px));
+  display: grid;
+  gap: 12px;
+  margin: 18px auto 0;
+  padding: 20px;
+}
+
+.wallet-embed-intro h1 {
+  margin: 5px 0 0;
+  font-size: clamp(28px, 6vw, 38px);
+  letter-spacing: -0.045em;
+}
+
+.wallet-embed-intro p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .hero__glow {
@@ -1524,6 +1572,60 @@ input[type="range"] {
 .facts-card {
   grid-column: 1 / -1;
   grid-row: 2;
+}
+
+.wallet-embed-details {
+  overflow: hidden;
+}
+
+.wallet-embed-details > summary {
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 18px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.wallet-embed-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.wallet-embed-details > summary strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 17px;
+}
+
+.wallet-embed-details__action {
+  flex: 0 0 auto;
+  color: var(--lime);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.wallet-embed-details[open] > summary {
+  border-bottom: 1px solid var(--line);
+}
+
+.wallet-embed-details[open] .wallet-embed-details__action {
+  font-size: 0;
+}
+
+.wallet-embed-details[open] .wallet-embed-details__action::after {
+  content: "접기";
+  font-size: 11px;
+}
+
+.wallet-embed-details__body {
+  padding: 18px;
+}
+
+.wallet-embed-details .facts-card {
+  grid-column: auto;
+  grid-row: auto;
 }
 
 .distribution-card {
@@ -2424,27 +2526,106 @@ input[type="range"] {
 
 @media (min-width: 1051px) {
   .hero {
-    min-height: 304px;
-    gap: 36px;
-    padding: 22px 0 10px;
+    min-height: 288px;
+    gap: 32px;
+    padding: 18px 0 8px;
   }
 
   .hero__copy h1 {
-    margin: 14px 0 16px;
-    font-size: clamp(52px, 5vw, 72px);
+    margin: 12px 0 14px;
+    font-size: clamp(50px, 4.75vw, 68px);
   }
 
   .hero__actions {
-    margin-top: 22px;
+    margin-top: 18px;
   }
 
   .hero__facts > div {
-    min-height: 72px;
+    min-height: 68px;
   }
 
   .feed-section {
     padding-top: 8px;
   }
+}
+
+.app-shell--wallet-embed .feed-section,
+.app-shell--wallet-embed .page,
+.app-shell--wallet-embed .site-footer {
+  width: min(var(--wallet-container-width), calc(100% - 24px));
+}
+
+.app-shell--wallet-embed .feed-section {
+  padding: 16px 0 56px;
+}
+
+.app-shell--wallet-embed .launch-grid,
+.app-shell--wallet-embed .skeleton-grid {
+  grid-template-columns: 1fr;
+}
+
+.app-shell--wallet-embed .site-footer {
+  padding: 24px 0 40px;
+}
+
+.token-page--wallet-embed {
+  padding-top: 20px;
+}
+
+.token-page--wallet-embed .token-header {
+  grid-template-columns: 1fr;
+  margin-bottom: 16px;
+}
+
+.token-page--wallet-embed .token-header__meta {
+  justify-items: start;
+}
+
+.token-page--wallet-embed .token-header__badges,
+.token-page--wallet-embed .token-header__meta .freshness {
+  justify-content: start;
+}
+
+.token-page--wallet-embed .token-layout {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.token-page--wallet-embed .token-content,
+.token-page--wallet-embed .token-sidebar {
+  display: contents;
+}
+
+.token-page--wallet-embed .token-sidebar__sticky {
+  grid-column: 1;
+  grid-row: 1;
+  position: static;
+}
+
+.token-page--wallet-embed .chart-card {
+  grid-column: 1;
+  grid-row: 2;
+  min-height: 340px;
+}
+
+.token-page--wallet-embed .wallet-embed-details {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+.token-page--wallet-embed .distribution-card {
+  grid-column: 1;
+  grid-row: 4;
+}
+
+.token-page--wallet-embed .vesting-card {
+  grid-column: 1;
+  grid-row: 5;
+}
+
+.token-page--wallet-embed .token-sidebar .evidence-card {
+  grid-column: 1;
+  grid-row: 6;
 }
 
 @media (max-width: 720px) {
@@ -2464,6 +2645,25 @@ input[type="range"] {
     min-height: 64px;
     grid-template-columns: 1fr auto;
     padding: 10px 14px;
+  }
+
+  .site-header--wallet-embed {
+    grid-template-columns: 1fr auto;
+    padding: 7px 12px;
+  }
+
+  .site-header--wallet-embed .wordmark {
+    min-width: 0;
+  }
+
+  .site-header--wallet-embed .wordmark > span:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .site-header--wallet-embed .wordmark small {
+    display: none;
   }
 
   .desktop-nav {
@@ -2691,6 +2891,10 @@ input[type="range"] {
 
   .site-footer {
     padding-bottom: 110px;
+  }
+
+  .app-shell--wallet-embed .site-footer {
+    padding-bottom: 36px;
   }
 
   .page {

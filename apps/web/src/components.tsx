@@ -11,11 +11,13 @@ import {
 import { Link, NavLink } from "react-router";
 
 import { appBrand, isLocalFixture, isPublicDemo, targetChain } from "./config";
+import { useWalletEmbed, withWalletEmbed } from "./embed";
 import { MotionPresence, MotionSwap } from "./motion";
 import { useWallet } from "./wallet";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const wallet = useWallet();
+  const walletEmbed = useWalletEmbed();
   const walletState = isPublicDemo
     ? "public-demo"
     : wallet.account
@@ -26,7 +28,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         ? "connecting"
         : "disconnected";
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell${walletEmbed ? " app-shell--wallet-embed" : ""}`}
+      data-embed={walletEmbed ? "wallet" : undefined}
+    >
       <a className="skip-link" href="#main">
         본문으로 건너뛰기
       </a>
@@ -38,62 +43,86 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ? "로컬 테스트 환경 · 실제 자산 아님"
             : "GIWA Sepolia 테스트넷 · 실제 자산 아님"}
       </div>
-      <header className="site-header">
-        <Link className="wordmark" to="/" aria-label={`${appBrand.appName} 홈`}>
+      <header
+        className={`site-header${walletEmbed ? " site-header--wallet-embed" : ""}`}
+      >
+        <Link
+          className="wordmark"
+          to={withWalletEmbed("/", walletEmbed)}
+          aria-label={`${appBrand.appName} 홈`}
+        >
           <span className="wordmark__mark" aria-hidden="true">
             F
           </span>
           <span>{appBrand.appName}</span>
-          <small>{isPublicDemo ? "PUBLIC DEMO" : "TESTNET"}</small>
+          <small>
+            {walletEmbed
+              ? "WALLET VIEW"
+              : isPublicDemo
+                ? "PUBLIC DEMO"
+                : "TESTNET"}
+          </small>
         </Link>
-        <nav className="desktop-nav" aria-label="주요 메뉴">
-          <NavLink to="/" end>
-            런치
-          </NavLink>
-          <NavLink to="/create">만들기</NavLink>
-          <NavLink to="/portfolio">포트폴리오</NavLink>
-          <NavLink to="/about/risk">위험 안내</NavLink>
-        </nav>
-        <div className="wallet-area">
-          <MotionSwap motionKey={walletState} className="wallet-motion">
-            {isPublicDemo ? (
-              <span className="public-demo-chip" role="status">
-                읽기 전용
-              </span>
-            ) : wallet.account ? (
-              <div className="wallet-controls">
-                {wallet.chainId !== targetChain.id ? (
+        {walletEmbed ? (
+          <span
+            className="wallet-embed-status"
+            role="status"
+            aria-label={`지갑 내 보기${isPublicDemo ? " · 읽기 전용" : ""}`}
+          >
+            지갑 내 보기{isPublicDemo ? " · 읽기 전용" : ""}
+          </span>
+        ) : (
+          <>
+            <nav className="desktop-nav" aria-label="주요 메뉴">
+              <NavLink to="/" end>
+                런치
+              </NavLink>
+              <NavLink to="/create">만들기</NavLink>
+              <NavLink to="/portfolio">포트폴리오</NavLink>
+              <NavLink to="/about/risk">위험 안내</NavLink>
+            </nav>
+            <div className="wallet-area">
+              <MotionSwap motionKey={walletState} className="wallet-motion">
+                {isPublicDemo ? (
+                  <span className="public-demo-chip" role="status">
+                    읽기 전용
+                  </span>
+                ) : wallet.account ? (
+                  <div className="wallet-controls">
+                    {wallet.chainId !== targetChain.id ? (
+                      <Button
+                        tone="danger"
+                        onClick={() => void wallet.switchToTargetChain()}
+                      >
+                        네트워크 전환
+                      </Button>
+                    ) : null}
+                    <button
+                      className="account-chip"
+                      onClick={wallet.disconnect}
+                      aria-label="지갑 연결 해제"
+                    >
+                      <span className="account-dot" aria-hidden="true" />
+                      {shortenAddress(wallet.account)}
+                    </button>
+                  </div>
+                ) : (
                   <Button
-                    tone="danger"
-                    onClick={() => void wallet.switchToTargetChain()}
+                    tone="neutral"
+                    busy={wallet.connecting}
+                    onClick={() => void wallet.connect()}
+                    data-testid="connect-wallet"
                   >
-                    네트워크 전환
+                    지갑 연결
                   </Button>
-                ) : null}
-                <button
-                  className="account-chip"
-                  onClick={wallet.disconnect}
-                  aria-label="지갑 연결 해제"
-                >
-                  <span className="account-dot" aria-hidden="true" />
-                  {shortenAddress(wallet.account)}
-                </button>
-              </div>
-            ) : (
-              <Button
-                tone="neutral"
-                busy={wallet.connecting}
-                onClick={() => void wallet.connect()}
-                data-testid="connect-wallet"
-              >
-                지갑 연결
-              </Button>
-            )}
-          </MotionSwap>
-        </div>
+                )}
+              </MotionSwap>
+            </div>
+          </>
+        )}
       </header>
       <MotionPresence
-        show={!isPublicDemo && Boolean(wallet.error)}
+        show={!walletEmbed && !isPublicDemo && Boolean(wallet.error)}
         className="shell-alert-motion"
       >
         {wallet.error ? (
@@ -105,24 +134,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main id="main" tabIndex={-1}>
         {children}
       </main>
-      <nav className="mobile-nav" aria-label="모바일 메뉴">
-        <NavLink to="/" end>
-          <span aria-hidden="true">⌁</span>
-          런치
-        </NavLink>
-        <NavLink to="/create">
-          <span aria-hidden="true">＋</span>
-          만들기
-        </NavLink>
-        <NavLink to="/portfolio">
-          <span aria-hidden="true">◫</span>
-          보유
-        </NavLink>
-        <NavLink to="/about/risk">
-          <span aria-hidden="true">!</span>
-          위험
-        </NavLink>
-      </nav>
+      {walletEmbed ? null : (
+        <nav className="mobile-nav" aria-label="모바일 메뉴">
+          <NavLink to="/" end>
+            <span aria-hidden="true">⌁</span>
+            런치
+          </NavLink>
+          <NavLink to="/create">
+            <span aria-hidden="true">＋</span>
+            만들기
+          </NavLink>
+          <NavLink to="/portfolio">
+            <span aria-hidden="true">◫</span>
+            보유
+          </NavLink>
+          <NavLink to="/about/risk">
+            <span aria-hidden="true">!</span>
+            위험
+          </NavLink>
+        </nav>
+      )}
       <footer className="site-footer">
         <p>
           누구나 토큰을 만들 수 있습니다. 표시된 검증 항목은 수익 또는 안전을
@@ -177,11 +208,15 @@ export function DataFreshness({ meta }: { meta: DataMeta | null }) {
 }
 
 export function LaunchCard({ launch }: { launch: LaunchSummary }) {
+  const walletEmbed = useWalletEmbed();
   return (
     <article className="launch-card" data-testid="launch-card">
       <Link
         className="launch-card__link"
-        to={`/token/${launch.chainId}/${launch.tokenAddress}`}
+        to={withWalletEmbed(
+          `/token/${launch.chainId}/${launch.tokenAddress}`,
+          walletEmbed,
+        )}
       >
         <div className="token-identity">
           <span className="token-image" aria-hidden="true">

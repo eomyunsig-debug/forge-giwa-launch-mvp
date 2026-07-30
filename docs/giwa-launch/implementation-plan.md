@@ -63,6 +63,9 @@ operational overhead.
   buy/sell, deadline, minimum-output, position identity, and pool-state surface.
 - `LocalConstantProductAdapter`: Anvil-only constant-product AMM fixture with an
   explicit test-only marker.
+- `GiwaTestnetConstantProductAdapter`: separately chain-gated, self-hosted
+  constant-product adapter and pool for an explicitly opted-in GIWA Sepolia
+  testnet smoke. It remains `isTestOnly() == true` and has not been broadcast.
 - `GiwaV2Adapter`: production-shaped Uniswap-V2-compatible adapter that can only
   be deployed with nonzero, code-bearing, explicitly configured GIWA addresses.
   It remains disabled while official deployments are unconfirmed.
@@ -87,10 +90,13 @@ five special buckets are removed from the denominator. Holder rows are ordered
 with decimal-string BigInt semantics rather than JavaScript `Number`
 conversion. Polling compares each bounded batch with the canonical head and
 reports `lagging` until the checkpoint actually catches up.
-Standard V2 `Swap`/`Sync` and local-fixture events have separate decoders.
-The configured chain selects exactly one decoder (`91342` → V2, `31337` →
-local); unsupported or contradictory combinations fail at startup. Because an
-AMM's initial `Sync` can precede the factory's `LaunchCreated` in one
+Standard V2 `Swap`/`Sync`, local-fixture events, and the GIWA self-hosted
+test-only pool's custom `Swap`/`ReservesSynced` events have separate decoders.
+Anvil `31337` accepts only `local`. GIWA `91342` defaults to `v2` and accepts
+`giwa-self-hosted-test-only` only through an explicit
+`INDEXER_POOL_EVENT_KIND` opt-in; unsupported or contradictory combinations
+fail at startup. The self-hosted decoder never probes V2 `token0`/`token1`.
+Because an AMM's initial `Sync` can precede the factory's `LaunchCreated` in one
 transaction, replay first seeds launch-owned entities and then applies all
 dependent events in canonical order.
 Distinct-buyer metrics use the canonical transaction sender rather than a
@@ -125,16 +131,31 @@ Unconfirmed AMM values are not invented. Missing values keep the GIWA AMM
 adapter disabled with an actionable configuration error. Local Anvil remains
 fully functional for vertical-flow validation.
 
+The web execution path additionally requires the exact
+`VITE_GIWA_DEPLOYMENT_MODE=giwa-self-hosted-test-only`, three distinct nonzero
+deployment addresses, and a positive deployed block. Public-demo builds ignore
+those values and remain read-only. Before launch or quote construction, the SDK
+checks adapter approval, `isConfigured()`, `isTestOnly()`, and the exact
+`adapterId()` expected for the selected mode.
+
 Both deployment scripts also enforce their exact chain IDs on-chain:
 `DeployLocal` accepts only `31337`, and `DeployGiwa` accepts only `91342`.
 Changing an environment variable cannot turn either path into a mainnet
-deployment.
+deployment. Within `DeployGiwa`, the self-hosted path additionally requires
+`USE_SELF_HOSTED_TEST_AMM=true`, conflicts with the external V2 approval mode,
+and is the only branch that permits a test adapter.
 
 ## AMM choice
 
 The local MVP uses a purpose-built constant-product fixture because it makes
 pool creation, LP ownership, locked principal, quotes, minimum output,
 deadlines, buys, sells, and event indexing deterministic and testable.
+
+For GIWA Sepolia only, the same product boundary now has a separate self-hosted
+constant-product test implementation. It is useful for a permissionless
+new-token pool and permanently lockable ERC-20 LP testnet smoke without
+inventing third-party addresses. It is explicitly opt-in, unaudited,
+test-only on-chain, and unbroadcast; it is not a production AMM claim.
 
 The GIWA adapter targets a verified V2-compatible deployment only if official or
 authoritative GIWA ecosystem sources confirm the addresses and bytecode. This
@@ -145,8 +166,9 @@ router/pool calls could bypass those policies.
 ## Known risks and blockers
 
 - GIWA network settings and read-only RPC/finality behavior are verified from
-  current official sources, but no approved AMM currently satisfies Forge's
-  new-token pool plus permanently locked ERC-20 LP boundary.
+  current official sources. The self-hosted test-only path satisfies the code
+  shape for a new-token pool plus ERC-20 LP lock, but it is unaudited and
+  unbroadcast; no approved external AMM currently satisfies that boundary.
 - No user-controlled funded GIWA Sepolia wallet was supplied. Forge does not
   import deployment keys, so no state-changing testnet deployment was
   attempted.
@@ -182,8 +204,9 @@ router/pool calls could bypass those policies.
 - [x] 9. Implement feed, token detail, quote, buy/sell, receipt reconciliation.
 - [x] 10. Implement risk facts, creator profile, portfolio, and risk education.
 - [x] 11. Automate local Anvil vertical Playwright flow and screenshots.
-- [x] 12. Add GIWA adapter configuration and run the available read-only smoke
-      checks; document state-changing blockers without fabricating results.
+- [x] 12. Add GIWA adapter configuration, the explicit self-hosted test-only
+      deployment path, read-only network checks, and public-RPC fork simulation;
+      document the still-unrun broadcast without fabricating results.
 - [x] 13. Harden security headers/rate limits/CSP, add CI and deployment
       artifacts.
 - [x] 14. Run final browser/accessibility QA and document residual risk.
