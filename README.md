@@ -156,6 +156,11 @@ The exact executed results and screenshot paths are recorded in
 
 The application evidence and remaining external actions are kept separate:
 
+- candidate code commit
+  `519f059c3b359f1b8cb843073b8539b4dd93d8dd` passed the complete local
+  verifier and is deployed as the current public read-only demo, but the GASOK
+  branch and deck are not yet published to GitHub;
+
 - [`application-readiness.md`](docs/giwa-launch/application-readiness.md) maps
   the eight GASOK Phase 1 + 2 criteria to current evidence and gaps;
 - [`application-answers.ko.md`](docs/giwa-launch/application-answers.ko.md)

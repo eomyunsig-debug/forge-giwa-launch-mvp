@@ -13,8 +13,8 @@ true.
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Official program   | [GASOK](https://giwa.io/gasok)                                                                                                      | Primary source for deadline, criteria, tracks, and notices                |
 | Application form   | [GASOK application — MVP Build Phase](https://ds.fdback.me/r/bLHPv694o6Au3)                                                         | Applicant completes; identity and legal declarations do not belong in Git |
-| Source             | [GitHub repository](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp)                                                       | Public source                                                             |
-| Pitch deck         | [Forge GASOK pitch deck](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/main/docs/pitch/Forge-GASOK-Pitch-Deck.pptx) | Submission deck in the public repository; link becomes current after push |
+| Source             | [GitHub repository](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp)                                                       | Public baseline; GASOK candidate branch is not pushed yet                 |
+| Pitch deck         | [Forge GASOK pitch deck](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/main/docs/pitch/Forge-GASOK-Pitch-Deck.pptx) | Stale until candidate push; use the reviewed local PPTX upload meanwhile  |
 | Product demo       | [Public read-only demo](https://forge-giwa-launch-eomyunsig.eomyunsig.chatgpt.site/)                                                | Local Anvil recording; **not live GIWA**                                  |
 | Evidence map       | [`application-readiness.md`](application-readiness.md)                                                                              | Eight GASOK criteria                                                      |
 | Korean answers     | [`application-answers.ko.md`](application-answers.ko.md)                                                                            | Form-ready draft; applicant identity remains a placeholder                |
@@ -38,7 +38,9 @@ acceptance.
 
 ## Repository evidence
 
-- [x] Public source repository.
+- [x] Public baseline source repository.
+- [ ] Publish the GASOK candidate branch and confirm that its exact SHA,
+      source, screenshots, and pitch deck are reachable signed out.
 - [x] Product README with local/run/verify instructions and explicit read-only
       demo boundary.
 - [x] Permissive license with a non-personal contributor copyright label.
@@ -57,15 +59,30 @@ acceptance.
       deployment path. This is code readiness, not deployment evidence.
 - [x] `giwa-testnet.json` represents non-deployment with null addresses
       instead of invented contracts.
-- [ ] Re-run all verification against the exact commit linked in the
-      application and record the commit SHA and date.
-- [ ] Confirm the public source, demo, deep links, and screenshots are reachable
-      in a signed-out browser immediately before submission.
+- [x] Candidate code commit
+      `519f059c3b359f1b8cb843073b8539b4dd93d8dd` passed the complete verifier
+      on 2026-07-30 KST. The subsequent submission-evidence update changes
+      documentation only and must receive its own formatting/link checks.
+- [ ] Confirm the public source and repository screenshots are reachable in a
+      signed-out browser after the candidate branch is pushed.
+- [x] Confirm the public demo, deep links, OG image, JavaScript, and CSS are
+      reachable. Version 13 was live-checked on 2026-07-30 KST; JavaScript and
+      CSS source maps returned 404 as intended.
 - [ ] After push, open the public pitch-deck link in a signed-out browser and
       confirm the deck is the exact visually reviewed file.
-- [ ] After a public build is released, open `/?embed=wallet` and the recorded
-      token route with `?embed=wallet` in a signed-out 390px browser. Until then,
-      submit the local screenshot as a layout prototype, not a live embed URL.
+- [x] Open `/?embed=wallet` and the recorded token route with
+      `?embed=wallet` in a signed-out 390px browser. Both were live-checked on
+      2026-07-30 KST with query preservation, no horizontal overflow, no
+      transaction controls, and no browser console error. This remains a
+      top-level wallet-container layout prototype, not host integration.
+
+## Track selection
+
+- If the form allows one choice, select **Track 01 — DeFi/RWA**.
+- If it allows multiple choices or a separate track application, add
+  **Track 05 — Mass Adoption**.
+- Do not select **Track 03 — GIWA-Native Ideas** until real GIWA deployment,
+  explorer, and ecosystem-integration evidence exist.
 
 ## Evidence that must not be fabricated
 

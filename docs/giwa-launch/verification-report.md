@@ -2,6 +2,8 @@
 
 - Baseline checked at: 2026-07-29 KST
 - GASOK readiness delta checked at: 2026-07-30 KST
+- Candidate code commit:
+  `519f059c3b359f1b8cb843073b8539b4dd93d8dd`
 
 This report records the local MVP evidence separately from the blocked GIWA
 Sepolia state-changing smoke. It does not claim a testnet deployment.
@@ -34,6 +36,9 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
   reduced-motion coverage. The recorded public demo still emitted zero
   connect, quote, approval, or buy/sell actions.
 - The submission pitch deck was generated and visually reviewed. The candidate
+  deck SHA-256 is
+  `16e17cac7c198b907565fe3f6ba009491890389f7455a7ad6d398132f16c81cb`.
+  The candidate
   submission images are:
   - `artifacts/screenshots/gasok/home-first-view-1440x900.png`
   - `artifacts/screenshots/gasok/wallet-embed-home-390x844.png`
@@ -41,9 +46,27 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
 
 The wallet mode is layout evidence, not a GIWA Wallet SDK/bridge integration.
 The GIWA AMM path is test-only code and fork-simulation evidence, not a
-deployment or independent audit. The exact submitted commit must still be
-checked after it is created so its immutable SHA can be recorded without
-changing that commit.
+deployment or independent audit.
+
+## Public release verification
+
+Sites version 13 was deployed from candidate code commit
+`519f059c3b359f1b8cb843073b8539b4dd93d8dd` and checked on 2026-07-30 KST:
+
+- `/`, `/?embed=wallet`, and the representative token deep link with
+  `?embed=wallet` returned 200 and rendered the recorded local state;
+- the wallet query remained on the detail link, the 390px view had no
+  horizontal overflow, and the detail page exposed no connect, quote,
+  approval, buy, or sell control;
+- the application JavaScript and CSS, favicon, and 1200×630 OG image returned
+  200; emitted JavaScript and CSS source-map URLs returned 404;
+- CSP, Permissions Policy, Referrer Policy, `nosniff`, and clickjacking
+  protections were present; browser console warnings and errors were zero.
+
+`frame-ancestors 'none'` and `X-Frame-Options: DENY` intentionally prevent
+third-party iframe embedding. `?embed=wallet` therefore means a top-level
+wallet WebView/container layout prototype, not an iframe or accepted GIWA
+Wallet host integration.
 
 ## Baseline automated verification (2026-07-29)
 

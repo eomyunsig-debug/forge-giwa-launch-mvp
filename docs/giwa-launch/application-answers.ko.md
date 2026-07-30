@@ -14,9 +14,11 @@
 - 현재 단계: **로컬 수직 MVP 검증 완료, GIWA Sepolia 테스트 전용 배포 경로
   구현·시뮬레이션 완료, 실제 GIWA 배포 전**
 - 주 트랙: **Track 01 — DeFi/RWA**
-- 현재 지원 폼은 트랙 하나만 받으므로 **Track 01만 선택**합니다. Mass
-  Adoption 또는 GIWA-Native 적합성은 실제 GIWA 배포가 없음을 명시한 서술
-  문맥에서만 설명하고 별도 트랙처럼 입력하지 않습니다.
+- 공식 프로그램 페이지는 복수 트랙 참여가 가능하다고 안내합니다. 폼이
+  단일 선택이면 **Track 01만 선택**하고, 복수 선택 또는 트랙별 추가 지원을
+  허용하면 **Track 05 — Mass Adoption**을 함께 선택합니다.
+  **Track 03 — GIWA-Native Ideas**는 실제 GIWA 배포·익스플로러·통합 증거가
+  생기기 전에는 선택하지 않습니다.
 - [공개 소스](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp)
 - [공개 읽기 전용 데모](https://forge-giwa-launch-eomyunsig.eomyunsig.chatgpt.site/)
 - [제출용 피치덱](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/main/docs/pitch/Forge-GASOK-Pitch-Deck.pptx)
@@ -24,6 +26,10 @@
 - [8개 기준 증거표](application-readiness.md)
 
 공개 데모는 로컬 Anvil 실행 기록이며 라이브 GIWA 서비스가 아닙니다.
+현재 공개 GitHub `main`은 GASOK 후보 커밋보다 이전 상태이므로, 소스와
+피치덱 링크는 후보 브랜치 push 뒤 서명되지 않은 브라우저에서 다시 연 다음
+지원서에 복사합니다. push 전에는 로컬의 검토된 PPTX 파일을 직접 업로드하고
+위 GitHub 피치덱 URL을 제출 증거로 사용하지 않습니다.
 
 ## 문제
 
