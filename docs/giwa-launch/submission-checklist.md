@@ -57,6 +57,10 @@ acceptance.
       read-only mutation guards. This is not host integration.
 - [x] Explicitly opted-in, chain-gated, test-only GIWA Sepolia self-hosted AMM
       deployment path. This is code readiness, not deployment evidence.
+- [x] GIWA deployment signer boundary accepts only a public deployer address in
+      configuration; the actual signer is loaded interactively from Foundry's
+      local encrypted keystore with `--account`. No raw GIWA private key or
+      keystore password belongs in chat, Git, or an env file.
 - [x] `giwa-testnet.json` represents non-deployment with null addresses
       instead of invented contracts.
 - [x] Candidate code commit

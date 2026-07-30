@@ -31,12 +31,13 @@ returns.
   history, portfolio/vesting claims, and risk education.
 
 No browser private-key or seed-phrase input exists. The local runner supplies
-only disposable Anvil test keys. The current GIWA Foundry deployment script
-requires a dedicated testnet deployer key through the process environment; it
-must be injected from a secure local secret source and never pasted into chat,
-committed, or stored in a shared `.env`. Post-deployment product actions remain
-browser-wallet signed. The deployment scripts enforce local Anvil `31337` or
-GIWA Sepolia `91342` and reject mainnet.
+only disposable Anvil test keys. The GIWA Foundry deployment script accepts
+only the deployer's public `DEPLOYER_ADDRESS`; its signer must be supplied by
+Foundry from a dedicated local encrypted keystore with `--account`. No raw
+GIWA private key, seed phrase, or keystore password belongs in the process
+environment, chat, repository, or shared `.env`. Post-deployment product
+actions remain browser-wallet signed. The deployment scripts enforce local
+Anvil `31337` or GIWA Sepolia `91342` and reject mainnet.
 
 ## Public read-only demo
 

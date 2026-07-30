@@ -19,6 +19,7 @@ contract DeployGiwa is ScriptBase {
 
     error UnsupportedGiwaChain(uint256 configuredChainId, uint256 actualChainId);
     error ConflictingAmmModes();
+    error InvalidDeployerAddress();
 
     event GiwaStackDeployed(
         uint256 indexed chainId,
@@ -42,8 +43,11 @@ contract DeployGiwa is ScriptBase {
         bool v2IntegrationApproved = vm.envOr("GIWA_AMM_INTEGRATION_APPROVED", false);
         if (useSelfHostedTestAmm && v2IntegrationApproved) revert ConflictingAmmModes();
 
-        uint256 deployerKey = vm.envUint("DEPLOYER_PRIVATE_KEY");
-        address deployer = vm.addr(deployerKey);
+        // The signer is loaded by Forge CLI (for example, --account) and never
+        // passed to this script as a raw private key. Only its public address
+        // crosses the script boundary.
+        address deployer = vm.envAddress("DEPLOYER_ADDRESS");
+        if (deployer == address(0)) revert InvalidDeployerAddress();
         address feeRecipient = vm.envOr("FEE_RECIPIENT", deployer);
         uint256 creationFee = vm.envOr("CREATION_FEE_WEI", uint256(0));
         uint256 minimumLiquidity = vm.envOr("MIN_INITIAL_LIQUIDITY_WEI", uint256(0.001 ether));
@@ -56,7 +60,7 @@ contract DeployGiwa is ScriptBase {
             wrappedNative = vm.envOr("GIWA_WRAPPED_NATIVE", address(0));
         }
 
-        vm.startBroadcast(deployerKey);
+        vm.startBroadcast(deployer);
         protocolConfig = new ProtocolConfig(
             deployer, feeRecipient, creationFee, minimumLiquidity, useSelfHostedTestAmm
         );

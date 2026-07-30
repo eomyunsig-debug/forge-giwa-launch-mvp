@@ -27,9 +27,13 @@ contract DeployGiwaGuardTest is TestBase {
         vm.chainId(91_342);
         vm.setEnv("USE_SELF_HOSTED_TEST_AMM", "true");
         vm.setEnv("GIWA_AMM_INTEGRATION_APPROVED", "false");
-        vm.setEnv("DEPLOYER_PRIVATE_KEY", "1");
 
         DeployGiwa deployer = new DeployGiwa();
+        vm.setEnv("DEPLOYER_ADDRESS", "0x0000000000000000000000000000000000000000");
+        vm.expectRevert(DeployGiwa.InvalidDeployerAddress.selector);
+        deployer.run();
+
+        vm.setEnv("DEPLOYER_ADDRESS", "0x0000000000000000000000000000000000000001");
         (ProtocolConfig config, LaunchFactory factory, IAMMAdapter adapter) = deployer.run();
 
         assertTrue(config.allowTestAdapters());

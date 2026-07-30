@@ -59,12 +59,12 @@ GIWA deployment and buy/sell broadcast were not run. There are two independent
 boundaries:
 
 1. Forge was not given a user-controlled, funded GIWA Sepolia deployer. The
-   app never asks for or stores a private key. The current Foundry deployment
-   script does require a dedicated testnet deployer key through the process
-   environment, so it must be injected from a secure local secret source and
-   never pasted into chat, committed, or stored in a shared/plaintext `.env`.
-   Product launch and trade actions after deployment remain browser-wallet
-   signed.
+   app never asks for or stores a private key. `DeployGiwa` accepts only the
+   public `DEPLOYER_ADDRESS`; the signer must be loaded from a dedicated local
+   encrypted Foundry keystore with `--account`. A private key, seed phrase, or
+   keystore password must never be pasted into chat, committed, or stored in
+   an env file. Product launch and trade actions after deployment remain
+   browser-wallet signed.
 2. No official or sufficiently reviewed external GIWA AMM deployment supports
    Forge's required permissionless new-token pool, initial liquidity, quote,
    swap, and verifiable permanent LP-lock flow. The only live external
@@ -82,3 +82,34 @@ Accordingly, `packages/contracts/deployments/giwa-testnet.json` still contains
 null addresses and `deployed: false`. The default external adapter remains
 fail-closed, and the complete state-changing product flow has been executed
 only against local Anvil.
+
+## Authorized deployment signer flow
+
+After the applicant creates and funds a dedicated GIWA Sepolia account, import
+it interactively into Foundry's encrypted local keystore:
+
+```sh
+cast wallet import forge-giwa-deployer --interactive
+```
+
+Then review the public deployer and fee settings, and run the exact-chain script
+with the imported account. `DEPLOYER_ADDRESS` and `--sender` must be the same
+public address:
+
+```sh
+DEPLOYER_ADDRESS=0xYourPublicAddress \
+FEE_RECIPIENT=0xYourReviewedFeeRecipient \
+USE_SELF_HOSTED_TEST_AMM=true \
+GIWA_AMM_INTEGRATION_APPROVED=false \
+scripts/foundry.sh script script/DeployGiwa.s.sol:DeployGiwa \
+  --account forge-giwa-deployer \
+  --sender 0xYourPublicAddress \
+  --rpc-url https://sepolia-rpc.giwa.io \
+  --broadcast
+```
+
+Do not run this command until the applicant has reviewed the admin, fee
+recipient, creation fee, minimum liquidity, balance, simulation, and
+test-only/unaudited AMM disclosure. A successful broadcast is still incomplete
+until the manifest, explorer source verification, runtime bytecode hashes,
+launch/buy/sell receipts, and indexer reconciliation gates are recorded.
