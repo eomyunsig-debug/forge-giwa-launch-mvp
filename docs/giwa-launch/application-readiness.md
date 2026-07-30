@@ -22,13 +22,15 @@ The public demo is useful evidence of product design and local execution. It
 must not be submitted as a live GIWA application.
 
 The candidate submission deck is
-[`Forge-GASOK-Pitch-Deck.pptx`](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/main/docs/pitch/Forge-GASOK-Pitch-Deck.pptx).
-The public link becomes current only after the reviewed file and related source
-changes are pushed. Reopen it signed out before copying it into the form.
-Until then, upload the reviewed local PPTX directly if the application accepts
-attachments; do not submit the stale GitHub `main` link as deck evidence. The
-reviewed deck SHA-256 is
+[`Forge-GASOK-Pitch-Deck.pptx`](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/3cad0b47530269ce9cc48c61c0dc2552956693a1/docs/pitch/Forge-GASOK-Pitch-Deck.pptx).
+The candidate source is published at immutable commit
+[`3cad0b47530269ce9cc48c61c0dc2552956693a1`](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/commit/3cad0b47530269ce9cc48c61c0dc2552956693a1)
+and [draft PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5).
+Signed-out HTTP checks returned 200 for the commit, PR, license, submission
+screenshots, and deck. The downloaded deck SHA-256 is
 `16e17cac7c198b907565fe3f6ba009491890389f7455a7ad6d398132f16c81cb`.
+Until the PR is merged, use these immutable candidate links rather than the
+older default-branch file URLs.
 
 Submission visuals:
 

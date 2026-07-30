@@ -159,8 +159,11 @@ The application evidence and remaining external actions are kept separate:
 
 - candidate code commit
   `eb488698f3d64f616b98f3afa28892a1d7da273c` passed the complete local
-  verifier and is deployed as the current public read-only demo, but the GASOK
-  branch and deck are not yet published to GitHub;
+  verifier. Published candidate evidence commit
+  [`3cad0b47530269ce9cc48c61c0dc2552956693a1`](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/commit/3cad0b47530269ce9cc48c61c0dc2552956693a1)
+  is available in
+  [draft PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5)
+  and backs the current public read-only demo;
 
 - [`application-readiness.md`](docs/giwa-launch/application-readiness.md) maps
   the eight GASOK Phase 1 + 2 criteria to current evidence and gaps;
@@ -172,8 +175,8 @@ The application evidence and remaining external actions are kept separate:
   canonical links, GIWA proof gates, and the non-simulated external-wallet
   pilot in one place;
 - the
-  [Forge GASOK pitch deck](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/main/docs/pitch/Forge-GASOK-Pitch-Deck.pptx)
-  is the public-repository submission deck after the reviewed file is pushed;
+  [Forge GASOK pitch deck](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/3cad0b47530269ce9cc48c61c0dc2552956693a1/docs/pitch/Forge-GASOK-Pitch-Deck.pptx)
+  is the immutable public-repository submission deck;
 - the
   [GASOK screenshot set](artifacts/screenshots/gasok/home-first-view-1440x900.png)
   includes the desktop first view plus

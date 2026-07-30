@@ -19,17 +19,19 @@
   허용하면 **Track 05 — Mass Adoption**을 함께 선택합니다.
   **Track 03 — GIWA-Native Ideas**는 실제 GIWA 배포·익스플로러·통합 증거가
   생기기 전에는 선택하지 않습니다.
-- [공개 소스](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp)
+- [공개 후보 소스](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/commit/3cad0b47530269ce9cc48c61c0dc2552956693a1)
+- [검토용 초안 PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5)
 - [공개 읽기 전용 데모](https://forge-giwa-launch-eomyunsig.eomyunsig.chatgpt.site/)
-- [제출용 피치덱](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/main/docs/pitch/Forge-GASOK-Pitch-Deck.pptx)
+- [제출용 피치덱](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/3cad0b47530269ce9cc48c61c0dc2552956693a1/docs/pitch/Forge-GASOK-Pitch-Deck.pptx)
 - [검증 보고서](verification-report.md)
 - [8개 기준 증거표](application-readiness.md)
 
 공개 데모는 로컬 Anvil 실행 기록이며 라이브 GIWA 서비스가 아닙니다.
-현재 공개 GitHub `main`은 GASOK 후보 커밋보다 이전 상태이므로, 소스와
-피치덱 링크는 후보 브랜치 push 뒤 서명되지 않은 브라우저에서 다시 연 다음
-지원서에 복사합니다. push 전에는 로컬의 검토된 PPTX 파일을 직접 업로드하고
-위 GitHub 피치덱 URL을 제출 증거로 사용하지 않습니다.
+후보 소스·스크린샷·피치덱은 초안 PR #5와 위 불변 커밋 링크로 공개됐고,
+비로그인 요청에서 200 응답을 확인했습니다. 피치덱 다운로드본의 SHA-256도
+검토본 `16e17cac7c198b907565fe3f6ba009491890389f7455a7ad6d398132f16c81cb`와
+일치합니다. PR이 병합되기 전에는 이전 상태인 저장소 `main` 링크 대신 위
+불변 커밋·PR·피치덱 링크를 지원서에 사용합니다.
 
 ## 문제
 

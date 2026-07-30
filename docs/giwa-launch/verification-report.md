@@ -4,6 +4,10 @@
 - GASOK readiness delta checked at: 2026-07-30 KST
 - Candidate code commit:
   `eb488698f3d64f616b98f3afa28892a1d7da273c`
+- Published evidence commit:
+  `3cad0b47530269ce9cc48c61c0dc2552956693a1`
+- GitHub review:
+  [draft PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5)
 
 This report records the local MVP evidence separately from the blocked GIWA
 Sepolia state-changing smoke. It does not claim a testnet deployment.
@@ -15,6 +19,9 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
   lint and formatting, contract-size and gas-snapshot checks, ABI export,
   deployment-manifest validation, production and public-demo builds, response
   protections, and a 207-file secret scan.
+- The complete verifier was rerun at published evidence commit
+  `3cad0b47530269ce9cc48c61c0dc2552956693a1` immediately before the branch
+  was pushed. The worktree remained clean.
 - The full Playwright suite passed 3/3 in 2.2 minutes, including the local
   launch → buy → exact-approval sell → indexer recovery flow and both
   wallet-layout/motion scenarios. `pnpm audit --audit-level high` reported no
@@ -56,8 +63,8 @@ deployment or independent audit.
 
 ## Public release verification
 
-Sites version 13 was deployed from the earlier readiness commit
-`519f059c3b359f1b8cb843073b8539b4dd93d8dd` and checked on 2026-07-30 KST:
+Sites version 15 was deployed from published evidence commit
+`3cad0b47530269ce9cc48c61c0dc2552956693a1` and checked on 2026-07-30 KST:
 
 - `/`, `/?embed=wallet`, and the representative token deep link with
   `?embed=wallet` returned 200 and rendered the recorded local state;
@@ -68,6 +75,10 @@ Sites version 13 was deployed from the earlier readiness commit
   200; emitted JavaScript and CSS source-map URLs returned 404;
 - CSP, Permissions Policy, Referrer Policy, `nosniff`, and clickjacking
   protections were present; browser console warnings and errors were zero.
+- the matching GitHub commit, draft PR, license, submission screenshot, and
+  pitch deck returned 200 without authentication. The downloaded public deck
+  matched the reviewed SHA-256
+  `16e17cac7c198b907565fe3f6ba009491890389f7455a7ad6d398132f16c81cb`.
 
 `frame-ancestors 'none'` and `X-Frame-Options: DENY` intentionally prevent
 third-party iframe embedding. `?embed=wallet` therefore means a top-level
