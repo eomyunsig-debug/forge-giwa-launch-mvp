@@ -3,7 +3,7 @@
 - Baseline checked at: 2026-07-29 KST
 - GASOK readiness delta checked at: 2026-07-30 KST
 - Candidate code commit:
-  `519f059c3b359f1b8cb843073b8539b4dd93d8dd`
+  `eb488698f3d64f616b98f3afa28892a1d7da273c`
 
 This report records the local MVP evidence separately from the blocked GIWA
 Sepolia state-changing smoke. It does not claim a testnet deployment.
@@ -25,6 +25,12 @@ Sepolia state-changing smoke. It does not claim a testnet deployment.
   public GIWA Sepolia RPC. The explicit deployment-mode branch also passed 1/1
   on that fork. Fork execution was local EVM simulation without `--broadcast`,
   so it created no chain transaction, address, receipt, or explorer evidence.
+- The final signer-boundary pass removed the raw GIWA private-key environment
+  input. `DeployGiwa` now accepts only a nonzero public
+  `DEPLOYER_ADDRESS`; Foundry must supply the corresponding encrypted local
+  account interactively with `--account`. The complete verifier, gas snapshot
+  regeneration plus two reproducibility checks, focused deployment guard, and
+  public-RPC fork 1/1 + 7/7 checks passed after this change.
 - Web Vitest passed 75/75 across 10 files, web strict typecheck passed, and the
   public-demo production build passed.
 - The indexer suite passed 41/41, including the explicitly opted-in GIWA
@@ -50,7 +56,7 @@ deployment or independent audit.
 
 ## Public release verification
 
-Sites version 13 was deployed from candidate code commit
+Sites version 13 was deployed from the earlier readiness commit
 `519f059c3b359f1b8cb843073b8539b4dd93d8dd` and checked on 2026-07-30 KST:
 
 - `/`, `/?embed=wallet`, and the representative token deep link with

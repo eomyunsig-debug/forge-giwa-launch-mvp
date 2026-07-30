@@ -64,7 +64,7 @@ acceptance.
 - [x] `giwa-testnet.json` represents non-deployment with null addresses
       instead of invented contracts.
 - [x] Candidate code commit
-      `519f059c3b359f1b8cb843073b8539b4dd93d8dd` passed the complete verifier
+      `eb488698f3d64f616b98f3afa28892a1d7da273c` passed the complete verifier
       on 2026-07-30 KST. The subsequent submission-evidence update changes
       documentation only and must receive its own formatting/link checks.
 - [ ] Confirm the public source and repository screenshots are reachable in a

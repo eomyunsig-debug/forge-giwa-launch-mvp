@@ -158,7 +158,7 @@ The exact executed results and screenshot paths are recorded in
 The application evidence and remaining external actions are kept separate:
 
 - candidate code commit
-  `519f059c3b359f1b8cb843073b8539b4dd93d8dd` passed the complete local
+  `eb488698f3d64f616b98f3afa28892a1d7da273c` passed the complete local
   verifier and is deployed as the current public read-only demo, but the GASOK
   branch and deck are not yet published to GitHub;
 
