@@ -1,11 +1,91 @@
 # Forge verification report
 
-Checked at: 2026-07-29 KST
+- Baseline checked at: 2026-07-29 KST
+- GASOK readiness delta checked at: 2026-07-30 KST
+- Candidate code commit:
+  `eb488698f3d64f616b98f3afa28892a1d7da273c`
+- Published evidence commit:
+  `3cad0b47530269ce9cc48c61c0dc2552956693a1`
+- GitHub review:
+  [draft PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5)
 
 This report records the local MVP evidence separately from the blocked GIWA
 Sepolia state-changing smoke. It does not claim a testnet deployment.
 
-## Automated verification
+## GASOK readiness delta
+
+- The final candidate worktree passed the complete workspace verifier:
+  151/151 Vitest tests across 22 files, 69/69 Foundry tests, strict typecheck,
+  lint and formatting, contract-size and gas-snapshot checks, ABI export,
+  deployment-manifest validation, production and public-demo builds, response
+  protections, and a 207-file secret scan.
+- The complete verifier was rerun at published evidence commit
+  `3cad0b47530269ce9cc48c61c0dc2552956693a1` immediately before the branch
+  was pushed. The worktree remained clean.
+- The full Playwright suite passed 3/3 in 2.2 minutes, including the local
+  launch → buy → exact-approval sell → indexer recovery flow and both
+  wallet-layout/motion scenarios. `pnpm audit --audit-level high` reported no
+  known vulnerabilities.
+- The complete Foundry suite passed 69/69, including seven GIWA self-hosted
+  flow tests and six GIWA invariants.
+- The same seven flow tests passed 7/7 against a read-only fork of the official
+  public GIWA Sepolia RPC. The explicit deployment-mode branch also passed 1/1
+  on that fork. Fork execution was local EVM simulation without `--broadcast`,
+  so it created no chain transaction, address, receipt, or explorer evidence.
+- The final signer-boundary pass removed the raw GIWA private-key environment
+  input. `DeployGiwa` now accepts only a nonzero public
+  `DEPLOYER_ADDRESS`; Foundry must supply the corresponding encrypted local
+  account interactively with `--account`. The complete verifier, gas snapshot
+  regeneration plus two reproducibility checks, focused deployment guard, and
+  public-RPC fork 1/1 + 7/7 checks passed after this change.
+- Web Vitest passed 75/75 across 10 files, web strict typecheck passed, and the
+  public-demo production build passed.
+- The indexer suite passed 41/41, including the explicitly opted-in GIWA
+  self-hosted event decoder and proof that it performs no V2 orientation read.
+  The SDK suite passed 23/23, including exact adapter identity, test-only,
+  configured, and approval checks before launch or quote construction.
+- Playwright motion smoke passed 2/2 with 1440px first-view coverage and a
+  390px `?embed=wallet` single-column layout, query preservation, and
+  reduced-motion coverage. The recorded public demo still emitted zero
+  connect, quote, approval, or buy/sell actions.
+- The submission pitch deck was generated and visually reviewed. The candidate
+  deck SHA-256 is
+  `16e17cac7c198b907565fe3f6ba009491890389f7455a7ad6d398132f16c81cb`.
+  The candidate
+  submission images are:
+  - `artifacts/screenshots/gasok/home-first-view-1440x900.png`
+  - `artifacts/screenshots/gasok/wallet-embed-home-390x844.png`
+  - `artifacts/screenshots/gasok/wallet-embed-token-390x844.png`
+
+The wallet mode is layout evidence, not a GIWA Wallet SDK/bridge integration.
+The GIWA AMM path is test-only code and fork-simulation evidence, not a
+deployment or independent audit.
+
+## Public release verification
+
+Sites version 15 was deployed from published evidence commit
+`3cad0b47530269ce9cc48c61c0dc2552956693a1` and checked on 2026-07-30 KST:
+
+- `/`, `/?embed=wallet`, and the representative token deep link with
+  `?embed=wallet` returned 200 and rendered the recorded local state;
+- the wallet query remained on the detail link, the 390px view had no
+  horizontal overflow, and the detail page exposed no connect, quote,
+  approval, buy, or sell control;
+- the application JavaScript and CSS, favicon, and 1200×630 OG image returned
+  200; emitted JavaScript and CSS source-map URLs returned 404;
+- CSP, Permissions Policy, Referrer Policy, `nosniff`, and clickjacking
+  protections were present; browser console warnings and errors were zero.
+- the matching GitHub commit, draft PR, license, submission screenshot, and
+  pitch deck returned 200 without authentication. The downloaded public deck
+  matched the reviewed SHA-256
+  `16e17cac7c198b907565fe3f6ba009491890389f7455a7ad6d398132f16c81cb`.
+
+`frame-ancestors 'none'` and `X-Frame-Options: DENY` intentionally prevent
+third-party iframe embedding. `?embed=wallet` therefore means a top-level
+wallet WebView/container layout prototype, not an iframe or accepted GIWA
+Wallet host integration.
+
+## Baseline automated verification (2026-07-29)
 
 | Check                        | Result                                                           |
 | ---------------------------- | ---------------------------------------------------------------- |
@@ -104,6 +184,12 @@ pnpm contracts:snapshot:check
 pnpm audit --audit-level high
 pnpm verify:public-demo
 FORGE_WEB_PORT=5180 pnpm test:e2e
+./scripts/foundry.sh test -vv
+./scripts/foundry.sh test --match-contract GiwaTestnetSelfHostedFlowTest \
+  --fork-url https://sepolia-rpc.giwa.io -vv
+./scripts/foundry.sh test \
+  --match-test testDeploymentModesAreExplicitAndFailClosed \
+  --fork-url https://sepolia-rpc.giwa.io -vv
 ```
 
 `pnpm contracts:snapshot:check` was run twice after generation to prove the
@@ -115,8 +201,11 @@ Read-only GIWA Sepolia RPC, chain ID, safe/finalized tags, balance method,
 explorer API, bridge, and faucet reachability were checked as recorded in
 `giwa-testnet-smoke.md`.
 
-No GIWA contracts were deployed. A state-changing run requires both a
-user-controlled funded browser wallet and an approved GIWA AMM that can create
-new-token pools and expose a permanently lockable LP principal. Neither
-prerequisite was available, so every GIWA deployment address remains `null` and
-the remote adapter fails closed.
+No GIWA contracts were deployed. Forge now has an explicitly opted-in,
+test-only self-hosted AMM path that can create new-token pools and expose
+permanently lockable ERC-20 LP principal on chain `91342`. Its successful local
+and public-RPC fork simulations are not broadcasts or an audit. A
+state-changing run still requires a user-controlled funded browser wallet,
+reviewed administrator and fee inputs, preflight, source verification, and
+launch/buy/sell reconciliation. Every GIWA deployment address therefore remains
+`null`; the external AMM path remains fail closed.

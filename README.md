@@ -19,8 +19,9 @@ returns.
   exact-output quotes, minimum output, deadline, buy, and sell;
 - a fail-closed GIWA adapter boundary with no invented DEX addresses;
 - a SQLite event indexer with idempotent logs, checkpoints, reorg rollback,
-  BigInt-safe balances, holder classification, standard V2/local pool event
-  decoding, committed-metadata retries, and source/freshness metadata;
+  BigInt-safe balances, holder classification, standard V2/local/self-hosted
+  test-pool event decoding, committed-metadata retries, and source/freshness
+  metadata;
 - an EIP-6963/injected-wallet React app with explicit chain switching,
   transaction-intent checks, exact sell allowance, receipt confirmation, and
   indexer reconciliation;
@@ -29,8 +30,14 @@ returns.
 - Korean-first responsive pages for launch feed, creation, trading, creator
   history, portfolio/vesting claims, and risk education.
 
-No private-key or seed-phrase input exists. The deployment scripts enforce
-local Anvil `31337` or GIWA Sepolia `91342` and reject mainnet.
+No browser private-key or seed-phrase input exists. The local runner supplies
+only disposable Anvil test keys. The GIWA Foundry deployment script accepts
+only the deployer's public `DEPLOYER_ADDRESS`; its signer must be supplied by
+Foundry from a dedicated local encrypted keystore with `--account`. No raw
+GIWA private key, seed phrase, or keystore password belongs in the process
+environment, chat, repository, or shared `.env`. Post-deployment product
+actions remain browser-wallet signed. The deployment scripts enforce local
+Anvil `31337` or GIWA Sepolia `91342` and reject mainnet.
 
 ## Public read-only demo
 
@@ -146,6 +153,46 @@ public-demo reading order, touch targets, and horizontal overflow.
 The exact executed results and screenshot paths are recorded in
 [`verification-report.md`](docs/giwa-launch/verification-report.md).
 
+## GASOK application readiness
+
+The application evidence and remaining external actions are kept separate:
+
+- candidate code commit
+  `eb488698f3d64f616b98f3afa28892a1d7da273c` passed the complete local
+  verifier. Published candidate evidence commit
+  [`3cad0b47530269ce9cc48c61c0dc2552956693a1`](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/commit/3cad0b47530269ce9cc48c61c0dc2552956693a1)
+  is available in
+  [draft PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5)
+  and backs the current public read-only demo;
+
+- [`application-readiness.md`](docs/giwa-launch/application-readiness.md) maps
+  the eight GASOK Phase 1 + 2 criteria to current evidence and gaps;
+- [`application-answers.ko.md`](docs/giwa-launch/application-answers.ko.md)
+  provides Korean form-ready answers without guessing applicant identity;
+- [`why-giwa.md`](docs/giwa-launch/why-giwa.md) records the GIWA rationale
+  without claiming a deployment or listing relationship;
+- [`submission-checklist.md`](docs/giwa-launch/submission-checklist.md) keeps
+  canonical links, GIWA proof gates, and the non-simulated external-wallet
+  pilot in one place;
+- the
+  [Forge GASOK pitch deck](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/3cad0b47530269ce9cc48c61c0dc2552956693a1/docs/pitch/Forge-GASOK-Pitch-Deck.pptx)
+  is the immutable public-repository submission deck;
+- the
+  [GASOK screenshot set](artifacts/screenshots/gasok/home-first-view-1440x900.png)
+  includes the desktop first view plus
+  [wallet home](artifacts/screenshots/gasok/wallet-embed-home-390x844.png) and
+  [wallet token](artifacts/screenshots/gasok/wallet-embed-token-390x844.png)
+  prototypes;
+- [`pilot-invite.ko.md`](docs/giwa-launch/pilot-invite.ko.md) is the
+  consent-based Korean invitation draft and must not be sent before a real
+  deployment and operator preflight.
+
+Forge is currently a solo-builder prototype developed with AI-assisted tools.
+Contributor identities are not inferred from Git metadata; the applicant must
+provide accurate names, roles, and legal/contact information directly in the
+application. AI tools are not team members, and repository tests or AI review
+are not an independent security audit.
+
 ## Workspace
 
 | Path                    | Responsibility                                           |
@@ -165,10 +212,17 @@ overridden by `VITE_APP_NAME` and `VITE_APP_TAGLINE`.
 
 ## GIWA status
 
-The official GIWA Sepolia RPC and explorer pass read-only smoke checks. A
-state-changing GIWA launch is intentionally not enabled because no approved
-AMM satisfies the new-token pool and permanent LP-lock requirements, and no
-funded user wallet was supplied. See
+The official GIWA Sepolia RPC and explorer pass read-only smoke checks. Forge
+now has an explicit `USE_SELF_HOSTED_TEST_AMM=true` deployment path for its
+GIWA Sepolia-only constant-product test AMM, but it has not been broadcast.
+The path remains marked test-only on-chain; it is not an audit, mainnet
+readiness, or approval of an external GIWA DEX. No funded user wallet was
+supplied. A state-changing deployment also requires the matching
+`VITE_GIWA_DEPLOYMENT_MODE=giwa-self-hosted-test-only` web configuration and
+`INDEXER_POOL_EVENT_KIND=giwa-self-hosted-test-only`; both default to disabled
+or V2 behavior and reject contradictory inputs. The SDK rechecks the approved
+adapter's on-chain identity, test-only marker, and configured state before
+building launch or quote requests. See
 [`giwa-testnet-smoke.md`](docs/giwa-launch/giwa-testnet-smoke.md) and
 [`amm-decision.md`](docs/giwa-launch/amm-decision.md).
 
@@ -183,3 +237,7 @@ remote adapter. The protocol administrator can change only future creation
 fees, their recipient, and the adapter allowlist. The administrator cannot
 mint, pause, blacklist, tax, seize creator allocations, withdraw LP principal,
 or upgrade deployed contracts.
+
+## License
+
+Forge is available under the [MIT License](LICENSE).

@@ -17,6 +17,14 @@ const contracts = [
     "LocalConstantProductAdapter.sol/LocalConstantProductAdapter.json",
   ],
   ["GiwaV2Adapter", "GiwaV2Adapter.sol/GiwaV2Adapter.json"],
+  [
+    "GiwaTestnetConstantProductAdapter",
+    "GiwaTestnetConstantProductAdapter.sol/GiwaTestnetConstantProductAdapter.json",
+  ],
+  [
+    "GiwaTestnetConstantProductPool",
+    "GiwaTestnetConstantProductPool.sol/GiwaTestnetConstantProductPool.json",
+  ],
 ] as const;
 
 async function main(): Promise<void> {

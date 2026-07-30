@@ -17,6 +17,26 @@ import {
 
 const BPS = 10_000n;
 export const DEFAULT_TRADE_QUOTE_TTL_MS = 30_000;
+const ADAPTER_IDENTITIES = {
+  "local-test-only": {
+    adapterId:
+      "0x529107a6fffee894eacf393d5603c815b5a160079f631af8c950fa0decb0a353",
+    testOnly: true,
+  },
+  "giwa-reviewed": {
+    adapterId:
+      "0x86083f9bb77f3cd1ba3747500b712be58a9fd20e7becf9bf1fc328de44f91ed4",
+    testOnly: false,
+  },
+  "giwa-self-hosted-test-only": {
+    adapterId:
+      "0x7cc46dc44520b82e1e4f957c97a99ddaf86723ac155212e8cabe0850adab8567",
+    testOnly: true,
+  },
+} as const satisfies Record<
+  Exclude<ContractDeployment["adapterKind"], "giwa-disabled">,
+  { adapterId: Hex; testOnly: boolean }
+>;
 
 export interface ContractDeployment {
   chainId: number;
@@ -24,7 +44,11 @@ export interface ContractDeployment {
   protocolConfig: Address;
   adapter: Address;
   deployedBlock: bigint;
-  adapterKind: "local-test-only" | "giwa-disabled" | "giwa-reviewed";
+  adapterKind:
+    | "local-test-only"
+    | "giwa-disabled"
+    | "giwa-reviewed"
+    | "giwa-self-hosted-test-only";
 }
 
 export interface TransactionRequest {
@@ -52,6 +76,34 @@ export interface TradeQuote {
   feeBps: number | null;
 }
 
+function expectedAdapterIdentity(deployment: ContractDeployment) {
+  if (deployment.adapterKind === "giwa-disabled") {
+    throw new Error("GIWA_AMM_INTEGRATION_DISABLED");
+  }
+  return ADAPTER_IDENTITIES[deployment.adapterKind];
+}
+
+function assertAdapterReady(
+  deployment: ContractDeployment,
+  state: {
+    adapterEnabled: boolean;
+    configured: boolean;
+    adapterId: Hex;
+    testOnly: boolean;
+  },
+): void {
+  if (!state.adapterEnabled || !state.configured) {
+    throw new Error("AMM_ADAPTER_DISABLED");
+  }
+  const expected = expectedAdapterIdentity(deployment);
+  if (
+    state.adapterId !== expected.adapterId ||
+    state.testOnly !== expected.testOnly
+  ) {
+    throw new Error("AMM_ADAPTER_IDENTITY_MISMATCH");
+  }
+}
+
 export async function buildLaunchRequest(
   client: PublicClient,
   deployment: ContractDeployment,
@@ -63,38 +115,57 @@ export async function buildLaunchRequest(
   if (deployment.adapterKind === "giwa-disabled") {
     throw new Error("GIWA_AMM_INTEGRATION_DISABLED");
   }
-  const [creationFee, minimumLiquidity, adapterEnabled, configured] =
-    await Promise.all([
-      client.readContract({
-        address: deployment.protocolConfig,
-        abi: protocolConfigAbi,
-        functionName: "creationFee",
-      }),
-      client.readContract({
-        address: deployment.protocolConfig,
-        abi: protocolConfigAbi,
-        functionName: "minimumInitialLiquidity",
-      }),
-      client.readContract({
-        address: deployment.protocolConfig,
-        abi: protocolConfigAbi,
-        functionName: "adapterEnabled",
-        args: [deployment.adapter],
-      }),
-      client.readContract({
-        address: deployment.adapter,
-        abi: ammAdapterAbi,
-        functionName: "isConfigured",
-      }),
-    ]);
+  const [
+    creationFee,
+    minimumLiquidity,
+    adapterEnabled,
+    configured,
+    adapterId,
+    testOnly,
+  ] = await Promise.all([
+    client.readContract({
+      address: deployment.protocolConfig,
+      abi: protocolConfigAbi,
+      functionName: "creationFee",
+    }),
+    client.readContract({
+      address: deployment.protocolConfig,
+      abi: protocolConfigAbi,
+      functionName: "minimumInitialLiquidity",
+    }),
+    client.readContract({
+      address: deployment.protocolConfig,
+      abi: protocolConfigAbi,
+      functionName: "adapterEnabled",
+      args: [deployment.adapter],
+    }),
+    client.readContract({
+      address: deployment.adapter,
+      abi: ammAdapterAbi,
+      functionName: "isConfigured",
+    }),
+    client.readContract({
+      address: deployment.adapter,
+      abi: ammAdapterAbi,
+      functionName: "adapterId",
+    }),
+    client.readContract({
+      address: deployment.adapter,
+      abi: ammAdapterAbi,
+      functionName: "isTestOnly",
+    }),
+  ]);
 
   const nativeLiquidity = BigInt(parsed.nativeLiquidityWei);
   if (nativeLiquidity < minimumLiquidity) {
     throw new Error("INITIAL_LIQUIDITY_BELOW_PROTOCOL_MINIMUM");
   }
-  if (!adapterEnabled || !configured) {
-    throw new Error("AMM_ADAPTER_DISABLED");
-  }
+  assertAdapterReady(deployment, {
+    adapterEnabled,
+    configured,
+    adapterId,
+    testOnly,
+  });
 
   const now = options.now ?? Math.floor(Date.now() / 1000);
   const deadline = now + (options.deadlineSeconds ?? 600);
@@ -149,20 +220,48 @@ export async function fetchTradeQuote(
     throw new Error("INVALID_SLIPPAGE_BPS");
   }
 
-  const [amountOut, state] = await Promise.all([
-    client.readContract({
-      address: deployment.adapter,
-      abi: ammAdapterAbi,
-      functionName: "quoteExactInput",
-      args: [token, side === "buy", amountIn],
-    }),
-    client.readContract({
-      address: deployment.adapter,
-      abi: ammAdapterAbi,
-      functionName: "getPoolState",
-      args: [token],
-    }),
-  ]);
+  const [amountOut, state, adapterEnabled, configured, adapterId, testOnly] =
+    await Promise.all([
+      client.readContract({
+        address: deployment.adapter,
+        abi: ammAdapterAbi,
+        functionName: "quoteExactInput",
+        args: [token, side === "buy", amountIn],
+      }),
+      client.readContract({
+        address: deployment.adapter,
+        abi: ammAdapterAbi,
+        functionName: "getPoolState",
+        args: [token],
+      }),
+      client.readContract({
+        address: deployment.protocolConfig,
+        abi: protocolConfigAbi,
+        functionName: "adapterEnabled",
+        args: [deployment.adapter],
+      }),
+      client.readContract({
+        address: deployment.adapter,
+        abi: ammAdapterAbi,
+        functionName: "isConfigured",
+      }),
+      client.readContract({
+        address: deployment.adapter,
+        abi: ammAdapterAbi,
+        functionName: "adapterId",
+      }),
+      client.readContract({
+        address: deployment.adapter,
+        abi: ammAdapterAbi,
+        functionName: "isTestOnly",
+      }),
+    ]);
+  assertAdapterReady(deployment, {
+    adapterEnabled,
+    configured,
+    adapterId,
+    testOnly,
+  });
   if (!state.initialized || amountOut <= 0n)
     throw new Error("QUOTE_UNAVAILABLE");
 
@@ -215,7 +314,11 @@ export async function fetchTradeQuote(
     createdAt: nowMs,
     expiresAt,
     pool: state.pool,
-    feeBps: deployment.adapterKind === "local-test-only" ? 30 : null,
+    feeBps:
+      deployment.adapterKind === "local-test-only" ||
+      deployment.adapterKind === "giwa-self-hosted-test-only"
+        ? 30
+        : null,
   };
 }
 

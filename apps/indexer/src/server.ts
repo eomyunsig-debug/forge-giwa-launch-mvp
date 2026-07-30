@@ -34,7 +34,7 @@ const environmentSchema = z.object({
   INDEXER_FINALITY_TAG: optionalFinalityTag,
   INDEXER_POOL_EVENT_KIND: z.preprocess(
     (value) => (value === "" ? undefined : value),
-    z.enum(["local", "v2"]).optional(),
+    z.enum(["local", "v2", "giwa-self-hosted-test-only"]).optional(),
   ),
   INDEXER_POLL_INTERVAL_MS: z.coerce
     .number()

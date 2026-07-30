@@ -9,6 +9,8 @@
     "ProtocolConfig.json",
     "IAMMAdapter.json",
     "LocalConstantProductAdapter.json",
-    "GiwaV2Adapter.json"
+    "GiwaV2Adapter.json",
+    "GiwaTestnetConstantProductAdapter.json",
+    "GiwaTestnetConstantProductPool.json"
   ]
 }

@@ -1,18 +1,54 @@
 # GIWA AMM integration decision
 
-Decision date: 2026-07-28
+- Decision date: 2026-07-28
+- Test-only path update: 2026-07-30
 
 ## Decision
 
 Forge enables `LocalConstantProductAdapter` only on local Anvil. GIWA Sepolia
-launch and trade actions remain disabled. `GiwaV2Adapter` is a fail-closed
-integration boundary, not a claim that a compatible GIWA DEX exists.
+external-DEX launch and trade actions remain disabled by default.
+`GiwaV2Adapter` is a fail-closed integration boundary, not a claim that a
+compatible GIWA DEX exists.
+
+Forge now also has a separate, explicitly opted-in
+`GiwaTestnetConstantProductAdapter` and pool for a self-hosted GIWA Sepolia
+testnet smoke. This path is test-only, unaudited, and unbroadcast. It does not
+change the external-DEX decision or establish mainnet readiness.
 
 No official DEX deployment was found in the
 [GIWA organization repositories](https://github.com/orgs/giwa-io/repositories).
 The official Uniswap and PancakeSwap deployment lists also do not publish a
 chain `91342` deployment. No factory, router, or pool address is inferred or
 invented.
+
+## Self-hosted GIWA Sepolia test path
+
+The test path has these fail-closed boundaries:
+
+- `USE_SELF_HOSTED_TEST_AMM=true` is required; the default remains the disabled
+  V2 adapter path;
+- enabling both the self-hosted path and
+  `GIWA_AMM_INTEGRATION_APPROVED=true` reverts with `ConflictingAmmModes`;
+- the adapter and each pool enforce chain ID `91342`;
+- the adapter ID is
+  `FORGE_GIWA_SEPOLIA_SELF_HOSTED_TEST_ONLY_CP_V1`;
+- `isTestOnly()` remains true on-chain, and `ProtocolConfig` allows test
+  adapters only in this explicit mode;
+- the pool issues ERC-20 LP principal compatible with the existing permanent
+  locker boundary;
+- `giwa-testnet.json` remains `deployed: false` with null contract addresses.
+
+The complete Foundry suite passed 69/69, including seven self-hosted GIWA flow
+tests and six GIWA invariants. The same seven flow tests passed against a
+read-only fork of the official public GIWA Sepolia RPC, and the explicit
+deployment-mode branch passed 1/1 on that fork. Fork execution was local EVM
+simulation: no `--broadcast`, signing key, transaction, contract address, or
+explorer receipt was produced.
+
+These results establish code-path and current-state compatibility only. A real
+state-changing smoke still requires a funded user-controlled wallet, explicit
+administrator and fee inputs, preflight simulation, broadcast, source
+verification, launch/buy/sell receipts, and indexer reconciliation.
 
 ## Investigated live candidate
 
@@ -46,7 +82,7 @@ OSIGE is not enabled because:
 - its fee behavior must be read from the deployed controller/quote path and
   cannot be advertised as a fixed `0.3%`.
 
-## Reconsideration gate
+## External AMM reconsideration gate
 
 A GIWA adapter can be enabled only after all of the following are true:
 
@@ -62,7 +98,10 @@ A GIWA adapter can be enabled only after all of the following are true:
 6. an explicit production integration flag is set in a reviewed deployment
    manifest.
 
-Until then the local fixture provides deterministic vertical verification, and
-GIWA actions fail closed. The indexer already has a separately tested standard
-V2 `Swap`/`Sync` decoder, but its presence is not evidence that any particular
-GIWA deployment is approved or compatible.
+Until then the external-DEX path fails closed. Local Anvil remains the
+deterministic full-product vertical flow; the GIWA self-hosted path remains an
+explicit testnet-only option. The indexer has separately tested standard V2
+and GIWA self-hosted event decoders. GIWA defaults to V2 and requires an
+explicit `INDEXER_POOL_EVENT_KIND=giwa-self-hosted-test-only` opt-in for the
+custom pool; the presence of either decoder is not evidence that a deployment
+is approved or compatible.

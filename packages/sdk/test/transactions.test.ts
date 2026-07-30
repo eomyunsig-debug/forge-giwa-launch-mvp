@@ -22,6 +22,12 @@ const protocolConfig = "0x4444444444444444444444444444444444444444";
 const adapter = "0x5555555555555555555555555555555555555555";
 const pool = "0x6666666666666666666666666666666666666666";
 const metadataHash = `0x${"ab".repeat(32)}` as const;
+const localAdapterId =
+  "0x529107a6fffee894eacf393d5603c815b5a160079f631af8c950fa0decb0a353";
+const giwaReviewedAdapterId =
+  "0x86083f9bb77f3cd1ba3747500b712be58a9fd20e7becf9bf1fc328de44f91ed4";
+const giwaSelfHostedAdapterId =
+  "0x7cc46dc44520b82e1e4f957c97a99ddaf86723ac155212e8cabe0850adab8567";
 
 const deployment: ContractDeployment = {
   chainId: 31_337,
@@ -34,11 +40,32 @@ const deployment: ContractDeployment = {
 
 function mockClient(
   implementation: (functionName: string) => unknown,
+  adapterSafety: {
+    adapterEnabled?: boolean;
+    configured?: boolean;
+    adapterId?: `0x${string}`;
+    testOnly?: boolean;
+  } = {},
 ): PublicClient {
+  const safety = {
+    adapterEnabled: true,
+    configured: true,
+    adapterId: localAdapterId,
+    testOnly: true,
+    ...adapterSafety,
+  };
   return {
-    readContract: vi.fn(({ functionName }: { functionName: string }) =>
-      Promise.resolve(implementation(functionName)),
-    ),
+    readContract: vi.fn(({ functionName }: { functionName: string }) => {
+      if (functionName === "adapterEnabled")
+        return Promise.resolve(safety.adapterEnabled);
+      if (functionName === "isConfigured")
+        return Promise.resolve(safety.configured);
+      if (functionName === "adapterId")
+        return Promise.resolve(safety.adapterId);
+      if (functionName === "isTestOnly")
+        return Promise.resolve(safety.testOnly);
+      return Promise.resolve(implementation(functionName));
+    }),
   } as unknown as PublicClient;
 }
 
@@ -47,8 +74,6 @@ describe("launch transaction builder", () => {
     const client = mockClient((functionName) => {
       if (functionName === "creationFee") return 10n;
       if (functionName === "minimumInitialLiquidity") return 100n;
-      if (functionName === "adapterEnabled") return true;
-      if (functionName === "isConfigured") return true;
       throw new Error(`unexpected read: ${functionName}`);
     });
 
@@ -88,13 +113,14 @@ describe("launch transaction builder", () => {
   });
 
   it("fails closed when the configured adapter is unavailable", async () => {
-    const client = mockClient((functionName) => {
-      if (functionName === "creationFee") return 0n;
-      if (functionName === "minimumInitialLiquidity") return 1n;
-      if (functionName === "adapterEnabled") return true;
-      if (functionName === "isConfigured") return false;
-      throw new Error(`unexpected read: ${functionName}`);
-    });
+    const client = mockClient(
+      (functionName) => {
+        if (functionName === "creationFee") return 0n;
+        if (functionName === "minimumInitialLiquidity") return 1n;
+        throw new Error(`unexpected read: ${functionName}`);
+      },
+      { configured: false },
+    );
 
     await expect(
       buildLaunchRequest(client, deployment, account, {
@@ -108,6 +134,30 @@ describe("launch transaction builder", () => {
         nativeLiquidityWei: "1",
       }),
     ).rejects.toThrow("AMM_ADAPTER_DISABLED");
+  });
+
+  it("rejects a configured address that does not prove the expected adapter identity", async () => {
+    const client = mockClient(
+      (functionName) => {
+        if (functionName === "creationFee") return 0n;
+        if (functionName === "minimumInitialLiquidity") return 1n;
+        throw new Error(`unexpected read: ${functionName}`);
+      },
+      { adapterId: `0x${"ff".repeat(32)}` },
+    );
+
+    await expect(
+      buildLaunchRequest(client, deployment, account, {
+        name: "Forge",
+        symbol: "FRG",
+        description: "test",
+        imageUrl: "http://localhost/image.png",
+        metadataUri: "http://localhost/metadata.json",
+        metadataHash,
+        creatorAllocationBps: 0,
+        nativeLiquidityWei: "1",
+      }),
+    ).rejects.toThrow("AMM_ADAPTER_IDENTITY_MISMATCH");
   });
 
   it("never builds a launch for an explicitly disabled GIWA adapter", async () => {
@@ -204,19 +254,22 @@ describe("trade quote builder", () => {
   });
 
   it("keeps an unverified GIWA swap fee undisclosed", async () => {
-    const client = mockClient((functionName) => {
-      if (functionName === "quoteExactInput") return 900n;
-      if (functionName === "getPoolState") {
-        return {
-          pool,
-          tokenReserve: 10_000n,
-          nativeReserve: 1_000n,
-          totalLiquidity: 1_000n,
-          initialized: true,
-        };
-      }
-      throw new Error(`unexpected read: ${functionName}`);
-    });
+    const client = mockClient(
+      (functionName) => {
+        if (functionName === "quoteExactInput") return 900n;
+        if (functionName === "getPoolState") {
+          return {
+            pool,
+            tokenReserve: 10_000n,
+            nativeReserve: 1_000n,
+            totalLiquidity: 1_000n,
+            initialized: true,
+          };
+        }
+        throw new Error(`unexpected read: ${functionName}`);
+      },
+      { adapterId: giwaReviewedAdapterId, testOnly: false },
+    );
 
     await expect(
       fetchTradeQuote(
@@ -233,19 +286,22 @@ describe("trade quote builder", () => {
   });
 
   it("keeps an approved GIWA fee undisclosed until the adapter exposes it", async () => {
-    const client = mockClient((functionName) => {
-      if (functionName === "quoteExactInput") return 900n;
-      if (functionName === "getPoolState") {
-        return {
-          pool,
-          tokenReserve: 10_000n,
-          nativeReserve: 1_000n,
-          totalLiquidity: 1_000n,
-          initialized: true,
-        };
-      }
-      throw new Error(`unexpected read: ${functionName}`);
-    });
+    const client = mockClient(
+      (functionName) => {
+        if (functionName === "quoteExactInput") return 900n;
+        if (functionName === "getPoolState") {
+          return {
+            pool,
+            tokenReserve: 10_000n,
+            nativeReserve: 1_000n,
+            totalLiquidity: 1_000n,
+            initialized: true,
+          };
+        }
+        throw new Error(`unexpected read: ${functionName}`);
+      },
+      { adapterId: giwaReviewedAdapterId, testOnly: false },
+    );
 
     const quote = await fetchTradeQuote(
       client,
@@ -258,6 +314,37 @@ describe("trade quote builder", () => {
     );
 
     expect(quote.feeBps).toBeNull();
+  });
+
+  it("discloses the fixed fee for the self-hosted GIWA test adapter", async () => {
+    const client = mockClient(
+      (functionName) => {
+        if (functionName === "quoteExactInput") return 900n;
+        if (functionName === "getPoolState") {
+          return {
+            pool,
+            tokenReserve: 10_000n,
+            nativeReserve: 1_000n,
+            totalLiquidity: 1_000n,
+            initialized: true,
+          };
+        }
+        throw new Error(`unexpected read: ${functionName}`);
+      },
+      { adapterId: giwaSelfHostedAdapterId, testOnly: true },
+    );
+
+    const quote = await fetchTradeQuote(
+      client,
+      { ...deployment, adapterKind: "giwa-self-hosted-test-only" },
+      account,
+      token,
+      "buy",
+      100n,
+      { slippageBps: 100, nowMs: 1_000_000 },
+    );
+
+    expect(quote.feeBps).toBe(30);
   });
 });
 

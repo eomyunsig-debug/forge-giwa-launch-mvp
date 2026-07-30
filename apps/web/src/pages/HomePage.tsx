@@ -7,6 +7,7 @@ import { Link } from "react-router";
 import { fetchLaunches } from "../api";
 import { AsyncBoundary, DataFreshness, LaunchCard } from "../components";
 import { appBrand, isLocalFixture, isPublicDemo } from "../config";
+import { useWalletEmbed, withWalletEmbed } from "../embed";
 import { MotionSwap } from "../motion";
 import { publicDemoLaunch } from "../publicDemoSnapshot";
 
@@ -25,6 +26,7 @@ const sortByFilter = {
 } as const;
 
 export function HomePage() {
+  const walletEmbed = useWalletEmbed();
   const [search, setSearch] = useState("");
   const [filter, setFilter] =
     useState<(typeof feedFilters)[number]>("신규 런치");
@@ -51,63 +53,87 @@ export function HomePage() {
 
   return (
     <>
-      <section className="hero">
-        <div className="hero__glow" aria-hidden="true" />
-        <div className="hero__copy motion-reveal motion-reveal--1">
-          <Badge status={isPublicDemo ? "muted" : "confirmed"}>
+      {walletEmbed ? (
+        <section
+          className="wallet-embed-intro glass-panel motion-reveal motion-reveal--1"
+          aria-labelledby="wallet-embed-title"
+        >
+          <div>
+            <span className="eyebrow">WALLET VIEW</span>
+            <h1 id="wallet-embed-title">
+              {isPublicDemo
+                ? "기록된 런치를 확인하세요"
+                : "위험을 먼저 보고 런치를 선택하세요"}
+            </h1>
+          </div>
+          <p>
             {isPublicDemo
-              ? "실제 로컬 실행 기록"
-              : isLocalFixture
-                ? "로컬 Anvil 개발 환경"
-                : "GIWA 테스트넷 실험"}
-          </Badge>
-          <h1>
-            빠르게 만들고,
-            <br />
-            <span>위험은 숨기지 마세요.</span>
-          </h1>
-          <p>{appBrand.tagline}</p>
-          <div className="hero__actions">
-            <Link
-              className="forge-button forge-button--primary"
-              to={
-                isPublicDemo
-                  ? `/token/${publicDemoLaunch.chainId.toString()}/${publicDemoLaunch.tokenAddress}`
-                  : "/create"
-              }
-            >
-              <span aria-hidden="true">＋</span>
-              {isPublicDemo ? "검증 기록 보기" : "토큰 만들기"}
-            </Link>
-            <Link className="text-link" to="/about/risk">
-              무엇을 보장하나요? →
-            </Link>
+              ? "카드에서 로컬 실행 기록과 위험 사실을 확인할 수 있습니다. 공개 데모에서는 지갑 요청이나 거래를 실행하지 않습니다."
+              : "카드에서 핵심 지표를 확인한 뒤 상세 화면의 매수 흐름으로 바로 이동합니다."}
+          </p>
+        </section>
+      ) : (
+        <section className="hero">
+          <div className="hero__glow" aria-hidden="true" />
+          <div className="hero__copy motion-reveal motion-reveal--1">
+            <Badge status={isPublicDemo ? "muted" : "confirmed"}>
+              {isPublicDemo
+                ? "실제 로컬 실행 기록"
+                : isLocalFixture
+                  ? "로컬 Anvil 개발 환경"
+                  : "GIWA 테스트넷 실험"}
+            </Badge>
+            <h1>
+              빠르게 만들고,
+              <br />
+              <span>위험은 숨기지 마세요.</span>
+            </h1>
+            <p>{appBrand.tagline}</p>
+            <div className="hero__actions">
+              <Link
+                className="forge-button forge-button--primary"
+                to={
+                  isPublicDemo
+                    ? withWalletEmbed(
+                        `/token/${publicDemoLaunch.chainId.toString()}/${publicDemoLaunch.tokenAddress}`,
+                        walletEmbed,
+                      )
+                    : "/create"
+                }
+              >
+                <span aria-hidden="true">＋</span>
+                {isPublicDemo ? "검증 기록 보기" : "토큰 만들기"}
+              </Link>
+              <Link className="text-link" to="/about/risk">
+                무엇을 보장하나요? →
+              </Link>
+            </div>
           </div>
-        </div>
-        <aside className="hero__facts glass-panel motion-reveal motion-reveal--2">
-          <div>
-            <span className="fact-icon fact-icon--mint" aria-hidden="true">
-              ∅
-            </span>
-            <p>추가 민팅</p>
-            <strong>불가능</strong>
-          </div>
-          <div>
-            <span className="fact-icon fact-icon--lock" aria-hidden="true">
-              ⌑
-            </span>
-            <p>LP 원금</p>
-            <strong>인출 경로 없음</strong>
-          </div>
-          <div>
-            <span className="fact-icon fact-icon--vest" aria-hidden="true">
-              ◷
-            </span>
-            <p>창작자 물량</p>
-            <strong>온체인 베스팅</strong>
-          </div>
-        </aside>
-      </section>
+          <aside className="hero__facts glass-panel motion-reveal motion-reveal--2">
+            <div>
+              <span className="fact-icon fact-icon--mint" aria-hidden="true">
+                ∅
+              </span>
+              <p>추가 민팅</p>
+              <strong>불가능</strong>
+            </div>
+            <div>
+              <span className="fact-icon fact-icon--lock" aria-hidden="true">
+                ⌑
+              </span>
+              <p>LP 원금</p>
+              <strong>인출 경로 없음</strong>
+            </div>
+            <div>
+              <span className="fact-icon fact-icon--vest" aria-hidden="true">
+                ◷
+              </span>
+              <p>창작자 물량</p>
+              <strong>온체인 베스팅</strong>
+            </div>
+          </aside>
+        </section>
+      )}
 
       <section className="feed-section motion-reveal motion-reveal--3">
         <div className="section-heading">
@@ -122,32 +148,38 @@ export function HomePage() {
           <DataFreshness meta={query.data?.meta ?? null} />
         </div>
 
-        <div className="feed-controls">
-          <label className="search-field">
-            <span aria-hidden="true">⌕</span>
-            <span className="visually-hidden">이름, 심볼 또는 주소 검색</span>
-            <input
-              type="search"
-              placeholder="이름, 심볼, 컨트랙트 주소 검색"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
-          </label>
+        {walletEmbed && isPublicDemo ? null : (
+          <div className="feed-controls">
+            <label className="search-field">
+              <span aria-hidden="true">⌕</span>
+              <span className="visually-hidden">이름, 심볼 또는 주소 검색</span>
+              <input
+                type="search"
+                placeholder="이름, 심볼, 컨트랙트 주소 검색"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </label>
 
-          <div className="filter-row" role="group" aria-label="런치 피드 필터">
-            {feedFilters.map((label) => (
-              <button
-                type="button"
-                key={label}
-                className={filter === label ? "active" : ""}
-                aria-pressed={filter === label}
-                onClick={() => setFilter(label)}
-              >
-                {label}
-              </button>
-            ))}
+            <div
+              className="filter-row"
+              role="group"
+              aria-label="런치 피드 필터"
+            >
+              {feedFilters.map((label) => (
+                <button
+                  type="button"
+                  key={label}
+                  className={filter === label ? "active" : ""}
+                  aria-pressed={filter === label}
+                  onClick={() => setFilter(label)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <AsyncBoundary loading={query.isLoading} error={query.error}>
           <MotionSwap
