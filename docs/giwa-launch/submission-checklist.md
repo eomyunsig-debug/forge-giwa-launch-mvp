@@ -16,7 +16,8 @@ true.
 | Source             | [Published candidate commit](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/commit/3cad0b47530269ce9cc48c61c0dc2552956693a1)                                  | Immutable source, evidence, screenshots, and submission documents         |
 | Review PR          | [Draft PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5)                                                                                          | Candidate branch targeting `main`; not merged                             |
 | Pitch deck         | [Forge GASOK pitch deck](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/3cad0b47530269ce9cc48c61c0dc2552956693a1/docs/pitch/Forge-GASOK-Pitch-Deck.pptx) | Immutable reviewed PPTX                                                   |
-| Product demo       | [Public read-only demo](https://forge-giwa-launch-eomyunsig.eomyunsig.chatgpt.site/)                                                                                    | Local Anvil recording; **not live GIWA**                                  |
+| Product demo       | [Public read-only demo](https://forge-giwa-launch-eomyunsig.eomyunsig.chatgpt.site/)                                                                                    | Local Anvil recording; **not live GIWA**. Product-design evidence only    |
+| GIWA deployment    | [`giwa-sepolia-deployment.md`](giwa-sepolia-deployment.md)                                                                                                              | Deployed addresses, transaction hashes, verified sources, chain re-reads  |
 | Evidence map       | [`application-readiness.md`](application-readiness.md)                                                                                                                  | Eight GASOK criteria                                                      |
 | Korean answers     | [`application-answers.ko.md`](application-answers.ko.md)                                                                                                                | Form-ready draft; applicant identity remains a placeholder                |
 | GIWA rationale     | [`why-giwa.md`](why-giwa.md)                                                                                                                                            | Honest application narrative                                              |
@@ -57,13 +58,20 @@ acceptance.
       redundant navigation and wallet UI removed, query preservation, and
       read-only mutation guards. This is not host integration.
 - [x] Explicitly opted-in, chain-gated, test-only GIWA Sepolia self-hosted AMM
-      deployment path. This is code readiness, not deployment evidence.
+      path, broadcast to chain `91342`. `ProtocolConfig`, `LaunchFactory`, and the
+      adapter are live and source verified on the official explorer.
+- [x] End-to-end launch, buy, exact-amount approval, and sell executed against
+      that deployment. The resulting token, pool, LP locker, and creator vesting
+      vault are source verified, and the factory-residue, sell-allowance,
+      LP-lock, token-authority, and vesting claims were re-read from chain
+      state. See [`giwa-sepolia-deployment.md`](giwa-sepolia-deployment.md).
 - [x] GIWA deployment signer boundary accepts only a public deployer address in
       configuration; the actual signer is loaded interactively from Foundry's
       local encrypted keystore with `--account`. No raw GIWA private key or
       keystore password belongs in chat, Git, or an env file.
-- [x] `giwa-testnet.json` represents non-deployment with null addresses
-      instead of invented contracts.
+- [x] `giwa-testnet.json` carries the deployed addresses with the block,
+      transaction hashes, adapter identity, runtime bytecode hashes, and
+      verified-source URLs. Runtime hashes were re-derived from chain and match.
 - [x] Candidate code commit
       `eb488698f3d64f616b98f3afa28892a1d7da273c` passed the complete verifier
       on 2026-07-30 KST. The subsequent submission-evidence update changes
@@ -95,16 +103,20 @@ acceptance.
 
 ## Evidence that must not be fabricated
 
-- [ ] **GIWA deployment:** record the deployed manifest, chain ID `91342`,
-      deployment transaction hashes, explorer URLs, source-verification URLs,
-      contract addresses, deployed block, exact `adapterId`, and runtime
-      bytecode hashes. The manifest schema rejects a deployed state without
-      this evidence.
-- [ ] **GIWA vertical smoke:** record a real testnet launch, quote, buy, sell,
-      receipts, minimum-output/deadline behavior, and indexer reconciliation
-      from a user-controlled browser wallet. The web and indexer must both use
-      the explicit self-hosted test-only mode; their defaults remain disabled
-      or V2.
+- [x] **GIWA deployment:** `giwa-testnet.json` records chain ID `91342`, the
+      four deployment transaction hashes, contract addresses, deployed block
+      `32120680`, the exact `adapterId`, runtime bytecode hashes re-derived
+      from chain, and three verified-source URLs. All seven deployed contracts
+      are source verified on the official explorer.
+- [ ] **GIWA vertical smoke:** partially done. A real launch, buy,
+      exact-amount approval, and sell were executed on chain `91342` with
+      minimum-output and deadline enforced, all four receipts returned
+      `status = 1`, and the indexer ingested the launch and both trades while
+      running in `INDEXER_POOL_EVENT_KIND=giwa-self-hosted-test-only` mode.
+      Still missing: the same flow driven from a user-controlled browser wallet
+      through the web app, with on-screen indexer reconciliation. The signing
+      was done with `cast` from the deployer keystore, which is a
+      builder-controlled account.
 - [ ] **GIWA Wallet integration:** distinguish a responsive or embed-layout
       prototype from an actual host/API integration and from GIWA acceptance.
 - [ ] **Independent audit:** link the auditor, scope, commit SHA, report, and

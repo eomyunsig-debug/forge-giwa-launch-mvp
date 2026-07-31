@@ -9,8 +9,46 @@
 - GitHub review:
   [draft PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5)
 
-This report records the local MVP evidence separately from the blocked GIWA
-Sepolia state-changing smoke. It does not claim a testnet deployment.
+This report records the local MVP evidence and the GIWA Sepolia deployment
+separately.
+
+## GIWA Sepolia deployment run — 2026-07-31 KST
+
+- The stack was broadcast to chain `91342` in block `32120680`.
+  `ProtocolConfig`, `LaunchFactory`, and the self-hosted test-only adapter are
+  live, and all three are source verified on the official explorer.
+- A launch, buy, exact-amount approval, and sell were executed against that
+  deployment across blocks `32121698`–`32121714`. All four receipts returned
+  `status = 1`. The resulting `LaunchToken`, pool, `PermanentLiquidityLocker`,
+  and `CreatorVestingVault` are source verified as well, so all seven contracts
+  resolve on the explorer.
+- Chain state was re-read afterwards rather than trusted from console output.
+  Foundry's broadcast summary mislabelled two of the four deployment
+  transactions, so every receipt was re-fetched by hash and re-matched.
+- Supply after the flow: pool 85.52%, creator vesting vault 5.00%, trader
+  9.47%, `LaunchFactory` 0.00%, summing exactly to `totalSupply()`. The sell
+  allowance settled to `0`, the locker holds the pool's entire LP
+  `totalSupply()` with no withdrawal function resolving, the token exposes no
+  `owner`/`mint`/`pause`/`blacklist`, and vault `claimable()` reads `0` before
+  the cliff.
+- Runtime bytecode hashes recorded in `giwa-testnet.json` were re-derived from
+  chain and match.
+- Addresses, transaction hashes, and reproduction commands are in
+  [`giwa-sepolia-deployment.md`](giwa-sepolia-deployment.md).
+- This is not an audit. The deployed AMM is Forge's own unaudited test-only
+  adapter, and its `ProtocolConfig` was constructed with
+  `allowTestAdapters=true`.
+
+## Post-deployment verifier run — 2026-07-31 KST
+
+- `pnpm verify` completed end to end on Node 24.18.1: format check, lint,
+  strict typecheck, 151/151 Vitest across 22 files, 69/69 Foundry, contract
+  size and full builds, ABI export, deployment-manifest validation, production
+  and public-demo builds, response protections, and a 209-file secret scan.
+- Playwright passed 3/3 in 2.2 minutes.
+- The three indexer test files that fail on Node 25 pass here; the
+  `pretest` Node-version guard exists to make that mismatch explicit rather
+  than surfacing as cascading native-module errors.
 
 ## GASOK readiness delta
 
@@ -201,11 +239,15 @@ Read-only GIWA Sepolia RPC, chain ID, safe/finalized tags, balance method,
 explorer API, bridge, and faucet reachability were checked as recorded in
 `giwa-testnet-smoke.md`.
 
-No GIWA contracts were deployed. Forge now has an explicitly opted-in,
-test-only self-hosted AMM path that can create new-token pools and expose
-permanently lockable ERC-20 LP principal on chain `91342`. Its successful local
-and public-RPC fork simulations are not broadcasts or an audit. A
-state-changing run still requires a user-controlled funded browser wallet,
-reviewed administrator and fee inputs, preflight, source verification, and
-launch/buy/sell reconciliation. Every GIWA deployment address therefore remains
-`null`; the external AMM path remains fail closed.
+The explicitly opted-in, test-only self-hosted AMM path was broadcast to chain
+`91342`. `ProtocolConfig`, `LaunchFactory`, and the adapter are live and source
+verified on the official explorer, and a launch, buy, exact-amount approval,
+and sell were executed against that deployment. The resulting token, pool, LP
+locker, and creator vesting vault are source verified as well, and the factory
+residue, sell-allowance, LP-lock, token-authority, and vesting claims were
+re-read from chain state. Addresses, transaction hashes, and reproduction
+commands are in [`giwa-sepolia-deployment.md`](giwa-sepolia-deployment.md).
+
+This is not an audit. The deployed AMM is Forge's own unaudited test-only
+adapter, its `ProtocolConfig` was constructed with `allowTestAdapters=true`, and
+the external Uniswap-V2-compatible AMM path remains fail closed.

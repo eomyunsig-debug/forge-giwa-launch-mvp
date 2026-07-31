@@ -36,7 +36,9 @@ The test path has these fail-closed boundaries:
   adapters only in this explicit mode;
 - the pool issues ERC-20 LP principal compatible with the existing permanent
   locker boundary;
-- `giwa-testnet.json` remains `deployed: false` with null contract addresses.
+- `giwa-testnet.json` records the deployed GIWA Sepolia addresses together with
+  the block, transaction hashes, adapter identity, runtime bytecode hashes, and
+  verified-source URLs.
 
 The complete Foundry suite passed 69/69, including seven self-hosted GIWA flow
 tests and six GIWA invariants. The same seven flow tests passed against a

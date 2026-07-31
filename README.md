@@ -212,23 +212,41 @@ overridden by `VITE_APP_NAME` and `VITE_APP_TAGLINE`.
 
 ## GIWA status
 
-The official GIWA Sepolia RPC and explorer pass read-only smoke checks. Forge
-now has an explicit `USE_SELF_HOSTED_TEST_AMM=true` deployment path for its
-GIWA Sepolia-only constant-product test AMM, but it has not been broadcast.
-The path remains marked test-only on-chain; it is not an audit, mainnet
-readiness, or approval of an external GIWA DEX. No funded user wallet was
-supplied. A state-changing deployment also requires the matching
-`VITE_GIWA_DEPLOYMENT_MODE=giwa-self-hosted-test-only` web configuration and
+Forge is deployed on GIWA Sepolia `91342`, and every contract is source
+verified on the official explorer.
+
+| Contract         | Address                                                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ProtocolConfig` | [`0x30a60f2FA757Dc95b9a38738a07D5F89Fa9c39Ea`](https://sepolia-explorer.giwa.io/address/0x30a60f2FA757Dc95b9a38738a07D5F89Fa9c39Ea?tab=contract) |
+| `LaunchFactory`  | [`0x7DacAa1F7d18F4E0336B21FeA2cFB9960a3d2325`](https://sepolia-explorer.giwa.io/address/0x7DacAa1F7d18F4E0336B21FeA2cFB9960a3d2325?tab=contract) |
+| AMM adapter      | [`0xF27a0684a9E65709F6eD2E842d25a1F0eF734F37`](https://sepolia-explorer.giwa.io/address/0xF27a0684a9E65709F6eD2E842d25a1F0eF734F37?tab=contract) |
+
+A launch, buy, exact-amount approval, and sell were executed end to end against
+that deployment. The resulting token, pool, LP locker, and creator vesting
+vault are also source verified, and the on-chain state was read back to confirm
+that the factory keeps no token residue, the sell allowance settles to zero,
+the LP principal has no withdrawal path, and the creator allocation stays
+locked until its cliff. Addresses, transaction hashes, and the exact `cast`
+commands to reproduce each check are in
+[`giwa-sepolia-deployment.md`](docs/giwa-launch/giwa-sepolia-deployment.md).
+
+The AMM is Forge's own constant-product adapter, deployed under
+`USE_SELF_HOSTED_TEST_AMM=true` and marked test-only on-chain. It is not
+audited, not mainnet ready, and not an approval of any external GIWA DEX; the
+`ProtocolConfig` behind it was constructed with `allowTestAdapters=true` and
+must never be reused for a production chain. The web app and indexer need the
+matching `VITE_GIWA_DEPLOYMENT_MODE=giwa-self-hosted-test-only` and
 `INDEXER_POOL_EVENT_KIND=giwa-self-hosted-test-only`; both default to disabled
 or V2 behavior and reject contradictory inputs. The SDK rechecks the approved
 adapter's on-chain identity, test-only marker, and configured state before
 building launch or quote requests. See
 [`giwa-testnet-smoke.md`](docs/giwa-launch/giwa-testnet-smoke.md) and
-[`amm-decision.md`](docs/giwa-launch/amm-decision.md).
+[`amm-decision.md`](docs/giwa-launch/amm-decision.md) for why no third-party
+GIWA Sepolia DEX was integrated.
 
-`packages/contracts/deployments/giwa-testnet.json` contains `null` contract
-addresses and the exact blocker. Absence is represented as absence; it is not
-replaced with a guessed address.
+`packages/contracts/deployments/giwa-testnet.json` carries the deployed
+addresses together with the block, transaction hashes, adapter identity,
+runtime bytecode hashes, and verified-source URLs.
 
 ## Security boundary
 

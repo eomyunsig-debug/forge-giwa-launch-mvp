@@ -65,7 +65,8 @@ operational overhead.
   explicit test-only marker.
 - `GiwaTestnetConstantProductAdapter`: separately chain-gated, self-hosted
   constant-product adapter and pool for an explicitly opted-in GIWA Sepolia
-  testnet smoke. It remains `isTestOnly() == true` and has not been broadcast.
+  testnet smoke. It remains `isTestOnly() == true` and is deployed on GIWA
+  Sepolia at `0xF27a0684a9E65709F6eD2E842d25a1F0eF734F37`.
 - `GiwaV2Adapter`: production-shaped Uniswap-V2-compatible adapter that can only
   be deployed with nonzero, code-bearing, explicitly configured GIWA addresses.
   It remains disabled while official deployments are unconfirmed.

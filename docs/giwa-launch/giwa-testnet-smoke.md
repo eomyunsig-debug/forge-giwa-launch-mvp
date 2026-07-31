@@ -78,10 +78,13 @@ read-only fork of the official public RPC, and the deployment-mode branch
 passed 1/1 on that fork. These were local EVM simulations without `--broadcast`;
 they produced no GIWA transaction, address, receipt, or explorer verification.
 
-Accordingly, `packages/contracts/deployments/giwa-testnet.json` still contains
-null addresses and `deployed: false`. The default external adapter remains
-fail-closed, and the complete state-changing product flow has been executed
-only against local Anvil.
+The self-hosted path was subsequently broadcast. `ProtocolConfig`,
+`LaunchFactory`, and the adapter are live and source verified on GIWA Sepolia,
+and a launch, buy, exact-amount approval, and sell were executed against that
+deployment; see [`giwa-sepolia-deployment.md`](giwa-sepolia-deployment.md).
+`packages/contracts/deployments/giwa-testnet.json` now carries those addresses
+and their evidence. The default external V2 adapter remains fail-closed, and
+the deployed AMM is still Forge's own unaudited test-only adapter.
 
 ## Authorized deployment signer flow
 

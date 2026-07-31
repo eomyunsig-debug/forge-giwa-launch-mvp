@@ -2,16 +2,34 @@
   "schemaVersion": 1,
   "network": "giwa-testnet",
   "chainId": 91342,
-  "deployed": false,
+  "deployed": true,
   "contracts": {
-    "protocolConfig": null,
-    "launchFactory": null,
-    "ammAdapter": null
+    "protocolConfig": "0x30a60f2FA757Dc95b9a38738a07D5F89Fa9c39Ea",
+    "launchFactory": "0x7DacAa1F7d18F4E0336B21FeA2cFB9960a3d2325",
+    "ammAdapter": "0xF27a0684a9E65709F6eD2E842d25a1F0eF734F37"
   },
   "ammIntegration": {
     "kind": "forge-self-hosted-constant-product-testnet",
-    "integrationApproved": false,
+    "integrationApproved": true,
     "testOnly": true
   },
-  "blocker": "No GIWA Sepolia broadcast has been authorized and no deployment addresses or receipts exist. The self-hosted adapter path is explicitly test-only and unaudited; deployment still requires a funded user-controlled key, final admin and fee inputs, simulation, explorer source verification, and a launch/buy/sell reconciliation smoke."
+  "deploymentEvidence": {
+    "deployedBlock": 32120680,
+    "broadcastTxHashes": [
+      "0x003d6248b0e2c49aa302f0b3883f54fa9846d3244356626bb784b8f19cac10be",
+      "0x855e620d0e084f7064dfc7710659851187d322038b953c58fcd03b84ffc63561",
+      "0xffc016b023ca9a869d3f9cd7d9f30a5f434a1657b7d09f2ddcb8df4fba973897",
+      "0x8dafa3507caf5dddffc2bfde60b5ad4002002851682d6b97d38e1018e3e0ec5a"
+    ],
+    "adapterId": "0x7cc46dc44520b82e1e4f957c97a99ddaf86723ac155212e8cabe0850adab8567",
+    "protocolConfigRuntimeCodeHash": "0x6909acb7602dacd5de6781b4cd9bad35021422b78964386d70c5599cdb61a461",
+    "launchFactoryRuntimeCodeHash": "0xc49beaa6c0dbd8f7e34d5e0b93902942ee659e475e9b3ffa60c85c61310229a6",
+    "ammAdapterRuntimeCodeHash": "0x4f5e5c3cb1e5118ff38e6ec6e1e621bf5a1ffb29f3665c4237f4d6c5d80bdf89",
+    "verifiedSourceUrls": [
+      "https://sepolia-explorer.giwa.io/address/0x30a60f2FA757Dc95b9a38738a07D5F89Fa9c39Ea?tab=contract",
+      "https://sepolia-explorer.giwa.io/address/0x7DacAa1F7d18F4E0336B21FeA2cFB9960a3d2325?tab=contract",
+      "https://sepolia-explorer.giwa.io/address/0xF27a0684a9E65709F6eD2E842d25a1F0eF734F37?tab=contract"
+    ]
+  },
+  "note": "The AMM is Forge's own unaudited constant-product adapter deployed for GIWA Sepolia testing, not an approved third-party GIWA DEX. ProtocolConfig was constructed with allowTestAdapters=true, so this manifest must never be reused for a production chain. The administrator can change only future creation fees, their recipient, and the adapter allowlist."
 }
