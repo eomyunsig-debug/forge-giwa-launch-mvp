@@ -97,8 +97,8 @@ separately.
   - `artifacts/screenshots/gasok/wallet-embed-token-390x844.png`
 
 The wallet mode is layout evidence, not a GIWA Wallet SDK/bridge integration.
-The GIWA AMM path is test-only code and fork-simulation evidence, not a
-deployment or independent audit.
+The GIWA AMM path is now broadcast on GIWA Sepolia as a test-only flow
+for this release, and it is still not independently audited.
 
 ## Public release verification
 

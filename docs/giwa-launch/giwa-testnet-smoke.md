@@ -2,10 +2,11 @@
 
 - Network check: 2026-07-28 KST
 - Test-only path simulation update: 2026-07-30 KST
+- State-changing execution update: 2026-07-31 KST
 
 This record separates read-only network verification from state-changing
-deployment. No mainnet request, private key, signature, token launch, or
-real-value transaction was used.
+deployment proofs on testnet. No mainnet request was used; only GIWA Sepolia testnet
+transactions for the explicit smoke flow were executed on-chain.
 
 ## Primary-source configuration
 

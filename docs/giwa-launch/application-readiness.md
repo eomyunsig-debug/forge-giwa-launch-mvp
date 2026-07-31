@@ -76,15 +76,17 @@ The strongest truthful application is:
 
 > Forge is a Korean-first launch market prototype that replaces a single
 > “safe” badge with verifiable, separately sourced risk facts. The complete
-> launch, liquidity, vesting, trading, indexing, and reconciliation flow is
-> automated on local Anvil, and a read-only public recording exposes the
-> resulting data without pretending to be live. GIWA Sepolia connectivity and
-> an explicitly test-only self-hosted liquidity path are prepared fail closed,
-> but the repository does not yet claim a GIWA deployment. GASOK support would
-> be used to independently review the GIWA liquidity path, validate the GIWA
-> Wallet host integration, and recruit a small consenting testnet cohort.
+launch, liquidity, vesting, trading, indexing, and reconciliation flow is
+implemented and source-verified on GIWA Sepolia, with the launch, buy, exact
+approval, and sell state-changing txs available from chain receipts. A
+read-only public recording still highlights anonymized demo flow and should not
+be presented as live custody. GIWA Sepolia connectivity and an explicitly
+test-only self-hosted liquidity path are operational in fail-closed mode.
+GASOK support would be used to independently review the GIWA liquidity path,
+validate GIWA Wallet host integration, and recruit a small consenting testnet
+cohort.
 
-Do not change “does not yet claim” to “deployed,” “live,” or “GIWA-native”
+Do not change this framing to “live,” “production,” or “GIWA-native”
 until the evidence gates in [`submission-checklist.md`](submission-checklist.md)
 are complete.
 
