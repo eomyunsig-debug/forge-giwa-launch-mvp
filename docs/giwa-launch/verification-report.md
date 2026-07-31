@@ -2,12 +2,13 @@
 
 - Baseline checked at: 2026-07-29 KST
 - GASOK readiness delta checked at: 2026-07-30 KST
-- Candidate code commit:
-  `eb488698f3d64f616b98f3afa28892a1d7da273c`
-- Published evidence commit:
+- GIWA Sepolia deployment and post-deployment verifier: 2026-07-31 KST
+- Submission commit:
+  `0c6778ba5d75d8fdffc2977f2ee372a56270bc47`
+- Earlier published evidence commit:
   `3cad0b47530269ce9cc48c61c0dc2552956693a1`
 - GitHub review:
-  [draft PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5)
+  [PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5) (merged)
 
 This report records the local MVP evidence and the GIWA Sepolia deployment
 separately.
@@ -102,7 +103,9 @@ deployment or independent audit.
 ## Public release verification
 
 Sites version 15 was deployed from published evidence commit
-`3cad0b47530269ce9cc48c61c0dc2552956693a1` and checked on 2026-07-30 KST:
+`3cad0b47530269ce9cc48c61c0dc2552956693a1` and checked on 2026-07-30 KST. The live
+demo still serves that build; it predates the GIWA Sepolia deployment and
+intentionally replays the local Anvil recording:
 
 - `/`, `/?embed=wallet`, and the representative token deep link with
   `?embed=wallet` returned 200 and rendered the recorded local state;

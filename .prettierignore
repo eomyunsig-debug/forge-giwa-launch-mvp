@@ -10,3 +10,7 @@ data
 playwright-report
 test-results
 pnpm-lock.yaml
+
+# Content-addressed token metadata. Bytes are committed to an immutable
+# on-chain metadataHash; reformatting breaks indexer hash verification.
+apps/web/public/metadata/

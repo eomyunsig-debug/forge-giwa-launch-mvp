@@ -19,10 +19,10 @@
   허용하면 **Track 05 — Mass Adoption**을 함께 선택합니다.
   **Track 03 — GIWA-Native Ideas**는 실제 GIWA 배포·익스플로러·통합 증거가
   생기기 전에는 선택하지 않습니다.
-- [공개 후보 소스](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/commit/3cad0b47530269ce9cc48c61c0dc2552956693a1)
+- [공개 후보 소스](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/commit/0c6778ba5d75d8fdffc2977f2ee372a56270bc47)
 - [검토용 초안 PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5)
 - [공개 읽기 전용 데모](https://forge-giwa-launch-eomyunsig.eomyunsig.chatgpt.site/)
-- [제출용 피치덱](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/3cad0b47530269ce9cc48c61c0dc2552956693a1/docs/pitch/Forge-GASOK-Pitch-Deck.pptx)
+- [제출용 피치덱](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/0c6778ba5d75d8fdffc2977f2ee372a56270bc47/docs/pitch/Forge-GASOK-Pitch-Deck.pptx)
 - [검증 보고서](verification-report.md)
 - [8개 기준 증거표](application-readiness.md)
 

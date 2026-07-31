@@ -158,11 +158,11 @@ The exact executed results and screenshot paths are recorded in
 The application evidence and remaining external actions are kept separate:
 
 - candidate code commit
-  `eb488698f3d64f616b98f3afa28892a1d7da273c` passed the complete local
+  `0c6778ba5d75d8fdffc2977f2ee372a56270bc47` passed the complete local
   verifier. Published candidate evidence commit
-  [`3cad0b47530269ce9cc48c61c0dc2552956693a1`](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/commit/3cad0b47530269ce9cc48c61c0dc2552956693a1)
+  [`0c6778ba5d75d8fdffc2977f2ee372a56270bc47`](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/commit/0c6778ba5d75d8fdffc2977f2ee372a56270bc47)
   is available in
-  [draft PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5)
+  [PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5) (merged)
   and backs the current public read-only demo;
 
 - [`application-readiness.md`](docs/giwa-launch/application-readiness.md) maps
@@ -175,7 +175,7 @@ The application evidence and remaining external actions are kept separate:
   canonical links, GIWA proof gates, and the non-simulated external-wallet
   pilot in one place;
 - the
-  [Forge GASOK pitch deck](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/3cad0b47530269ce9cc48c61c0dc2552956693a1/docs/pitch/Forge-GASOK-Pitch-Deck.pptx)
+  [Forge GASOK pitch deck](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/0c6778ba5d75d8fdffc2977f2ee372a56270bc47/docs/pitch/Forge-GASOK-Pitch-Deck.pptx)
   is the immutable public-repository submission deck;
 - the
   [GASOK screenshot set](artifacts/screenshots/gasok/home-first-view-1440x900.png)

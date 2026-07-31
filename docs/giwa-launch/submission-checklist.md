@@ -13,9 +13,9 @@ true.
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | Official program   | [GASOK](https://giwa.io/gasok)                                                                                                                                          | Primary source for deadline, criteria, tracks, and notices                |
 | Application form   | [GASOK application — MVP Build Phase](https://ds.fdback.me/r/bLHPv694o6Au3)                                                                                             | Applicant completes; identity and legal declarations do not belong in Git |
-| Source             | [Published candidate commit](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/commit/3cad0b47530269ce9cc48c61c0dc2552956693a1)                                  | Immutable source, evidence, screenshots, and submission documents         |
-| Review PR          | [Draft PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5)                                                                                          | Candidate branch targeting `main`; not merged                             |
-| Pitch deck         | [Forge GASOK pitch deck](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/3cad0b47530269ce9cc48c61c0dc2552956693a1/docs/pitch/Forge-GASOK-Pitch-Deck.pptx) | Immutable reviewed PPTX                                                   |
+| Source             | [Published candidate commit](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/commit/0c6778ba5d75d8fdffc2977f2ee372a56270bc47)                                  | Immutable source, evidence, screenshots, and submission documents         |
+| Review PR          | [PR #5](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/pull/5)                                                                                                | Merged into `main`; kept for review history                               |
+| Pitch deck         | [Forge GASOK pitch deck](https://github.com/eomyunsig-debug/forge-giwa-launch-mvp/blob/0c6778ba5d75d8fdffc2977f2ee372a56270bc47/docs/pitch/Forge-GASOK-Pitch-Deck.pptx) | Immutable reviewed PPTX                                                   |
 | Product demo       | [Public read-only demo](https://forge-giwa-launch-eomyunsig.eomyunsig.chatgpt.site/)                                                                                    | Local Anvil recording; **not live GIWA**. Product-design evidence only    |
 | GIWA deployment    | [`giwa-sepolia-deployment.md`](giwa-sepolia-deployment.md)                                                                                                              | Deployed addresses, transaction hashes, verified sources, chain re-reads  |
 | Evidence map       | [`application-readiness.md`](application-readiness.md)                                                                                                                  | Eight GASOK criteria                                                      |
@@ -73,7 +73,7 @@ acceptance.
       transaction hashes, adapter identity, runtime bytecode hashes, and
       verified-source URLs. Runtime hashes were re-derived from chain and match.
 - [x] Candidate code commit
-      `eb488698f3d64f616b98f3afa28892a1d7da273c` passed the complete verifier
+      `0c6778ba5d75d8fdffc2977f2ee372a56270bc47` passed the complete verifier
       on 2026-07-30 KST. The subsequent submission-evidence update changes
       documentation only and must receive its own formatting/link checks.
 - [x] Confirm the public source and repository screenshots are reachable in a
