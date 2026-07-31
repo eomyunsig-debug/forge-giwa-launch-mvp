@@ -55,36 +55,49 @@ constants.
 
 ## State-changing smoke status
 
-GIWA deployment and buy/sell broadcast were not run. There are two independent
-boundaries:
+GIWA state-changing smoke has been completed on GIWA Sepolia with the deployed
+self-hosted test AMM stack.
 
-1. Forge was not given a user-controlled, funded GIWA Sepolia deployer. The
-   app never asks for or stores a private key. `DeployGiwa` accepts only the
-   public `DEPLOYER_ADDRESS`; the signer must be loaded from a dedicated local
-   encrypted Foundry keystore with `--account`. A private key, seed phrase, or
-   keystore password must never be pasted into chat, committed, or stored in
-   an env file. Product launch and trade actions after deployment remain
-   browser-wallet signed.
-2. No official or sufficiently reviewed external GIWA AMM deployment supports
-   Forge's required permissionless new-token pool, initial liquidity, quote,
-   swap, and verifiable permanent LP-lock flow. The only live external
-   candidate found is the third-party OSIGE CLAMM described in
-   `amm-decision.md`.
+Chain: `91342` (`0x164ce`), deployer/fee recipient:
+`0xf7a25FDc7522133Bc493Fd772D7A347daa4973b4`.
 
-Forge now includes an explicit `USE_SELF_HOSTED_TEST_AMM=true` path for its
-chain-gated, self-hosted GIWA Sepolia constant-product test AMM. The full
-Foundry suite passed 69/69. The seven GIWA flow tests passed again on a
-read-only fork of the official public RPC, and the deployment-mode branch
-passed 1/1 on that fork. These were local EVM simulations without `--broadcast`;
-they produced no GIWA transaction, address, receipt, or explorer verification.
+- `ProtocolConfig`: `0x30a60f2FA757Dc95b9a38738a07D5F89Fa9c39Ea`
+- `LaunchFactory`: `0x7DacAa1F7d18F4E0336B21FeA2cFB9960a3d2325`
+- `GiwaTestnetConstantProductAdapter`: `0xF27a0684a9E65709F6eD2E842d25a1F0eF734F37`
 
-The self-hosted path was subsequently broadcast. `ProtocolConfig`,
-`LaunchFactory`, and the adapter are live and source verified on GIWA Sepolia,
-and a launch, buy, exact-amount approval, and sell were executed against that
-deployment; see [`giwa-sepolia-deployment.md`](giwa-sepolia-deployment.md).
-`packages/contracts/deployments/giwa-testnet.json` now carries those addresses
-and their evidence. The default external V2 adapter remains fail-closed, and
+Executed flow:
+
+1. launch
+   - tx: `0x7659f63d3b26c56a69efc6ba1ea1fa939d47b2763dbc6d75028e67a833a93333`
+   - block: `32121698`
+   - status: `1 (success)`
+   - launchId: `1`
+   - token: `0x6583E1A8B0217b285EF1F430f2040a117269d1df`
+2. buy
+   - tx: `0x890ba5ddfbf8cda4253ee6750ab7482eee0a3e7aa97e6aeefee76683e20a0fed`
+   - block: `32121705`
+   - status: `1 (success)`
+3. approve
+   - tx: `0xfa828d00bbd799773ed7ea723b8f523ca3f9ed7dcec8e70259360865f206b90e`
+   - block: `32121710`
+   - status: `1 (success)`
+4. sell
+   - tx: `0x6e0e0ad54bf37f6e51a830db22981602bc07fdc6533b4b0c9d29aa48776b739e`
+   - block: `32121714`
+   - status: `1 (success)`
+
+Result balance:
+
+- Deployer remaining ETH: `0.002764135495271738 ETH`
+
+`packages/contracts/deployments/giwa-testnet.json` carries these chain proofs:
+deployed block, broadcast tx hashes, runtime bytecode hashes, adapter ID, and
+verified explorer URLs. The default external V2 adapter remains fail-closed, and
 the deployed AMM is still Forge's own unaudited test-only adapter.
+
+This run was executed via the dedicated Foundry keystore path used for deployment
+smoke, not via browser-wallet transactions. This document keeps explorer/tx-level
+proof for the vertical flow.
 
 ## Authorized deployment signer flow
 
